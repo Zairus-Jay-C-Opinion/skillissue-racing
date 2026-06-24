@@ -74,7 +74,12 @@ Respond with exactly this JSON structure:
 
     resp = await _post(payload)
     resp.raise_for_status()
-    raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    body = resp.json()
+    candidates = body.get("candidates", [])
+    if not candidates:
+        block = body.get("promptFeedback", {}).get("blockReason", "no candidates returned")
+        raise ValueError(f"Gemini returned empty response: {block}")
+    raw = candidates[0]["content"]["parts"][0]["text"]
     return json.loads(raw)
 
 
@@ -96,7 +101,11 @@ Write the progress note now."""
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = await _post(payload)
     resp.raise_for_status()
-    return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    body = resp.json()
+    candidates = body.get("candidates", [])
+    if not candidates:
+        raise ValueError("Gemini returned empty response for narrative")
+    return candidates[0]["content"]["parts"][0]["text"].strip()
 
 
 async def test_api_key(key: str) -> dict:

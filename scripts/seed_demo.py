@@ -14,6 +14,7 @@ import sys
 import json
 import random
 import argparse
+import time
 import httpx
 from datetime import datetime, timedelta
 
@@ -176,6 +177,9 @@ def seed(no_coaching: bool):
                 if resp.status_code == 201:
                     sessions_created += 1
                     print(f"  ✓ {combo['car']} @ {combo['track']}  {session['best_lap_time']:.3f}s  ({dt.strftime('%d %b')})")
+                    if not no_coaching:
+                        # Stay under Gemini free tier: 15 req/min = 1 per 4s
+                        time.sleep(5)
                 elif resp.status_code == 409:
                     print(f"  ~ already exists: {session['filename']}")
                 else:

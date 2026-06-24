@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Integer, Float, DateTime, Date, ForeignKey, func
+from sqlalchemy import Column, Text, Integer, Float, DateTime, Date, ForeignKey, func, UniqueConstraint
 from backend.database import Base
 import uuid
 
@@ -72,6 +72,8 @@ class PersonalBest(Base):
     session_id = Column(Text, ForeignKey("sessions.id"))
     lap_telemetry = Column(Text)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("car_name", "track_name"),)
 
 
 class WeeklyNarrative(Base):

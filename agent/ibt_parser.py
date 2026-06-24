@@ -16,7 +16,12 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-import irsdk
+try:
+    import irsdk
+    IRSDK_AVAILABLE = True
+except ImportError:
+    irsdk = None
+    IRSDK_AVAILABLE = False
 
 log = logging.getLogger(__name__)
 
@@ -97,6 +102,10 @@ def parse_ibt(filepath: str) -> Optional[dict]:
     """
     Parse an iRacing .ibt file. Returns a structured session dict or None on failure.
     """
+    if not IRSDK_AVAILABLE:
+        log.error("pyirsdk not installed — cannot parse real IBT files. Run: pip install pyirsdk")
+        return None
+
     if os.path.getsize(filepath) < MIN_FILE_SIZE:
         log.warning(f"Skipping small file: {filepath}")
         return None

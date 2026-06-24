@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -89,7 +89,7 @@ class GeminiTestRequest(BaseModel):
 # ── Sessions ─────────────────────────────────────────────────────────────────
 
 @app.post("/api/sessions", status_code=201)
-async def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
+async def create_session(body: SessionCreate, background_tasks: BackgroundTasks, db: DBSession = Depends(get_db)):
     if db.query(SessionModel).filter_by(filename=body.filename).first():
         raise HTTPException(status_code=409, detail="Session already exists")
 
@@ -159,75 +159,70 @@ async def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
 
     db.commit()
 
-    # Fire coaching in background (don't block the agent's POST)
-    _trigger_coaching(session_id, body, db)
+    # Fire coaching in background — FastAPI runs this after the response is sent
+    background_tasks.add_task(_run_coaching_bg, session_id, body)
 
     return {"id": session_id}
 
 
-def _trigger_coaching(session_id: str, body: SessionCreate, db: DBSession):
-    """Best-effort coaching call — failures are logged, not raised."""
-    import asyncio
-
-    pb = db.query(PersonalBest).filter_by(car_name=body.car_name, track_name=body.track_name).first()
-    delta_to_pb = None
-    if pb and body.best_lap_time:
-        delta_to_pb = round(body.best_lap_time - pb.best_lap_time, 3)
-
-    tyre_rows = db.query(TyreData).filter_by(session_id=session_id).all()
-    fl_avg = sum(r.fl_avg_temp for r in tyre_rows if r.fl_avg_temp) / max(len(tyre_rows), 1)
-    fr_avg = sum(r.fr_avg_temp for r in tyre_rows if r.fr_avg_temp) / max(len(tyre_rows), 1)
-    rl_avg = sum(r.rl_avg_temp for r in tyre_rows if r.rl_avg_temp) / max(len(tyre_rows), 1)
-    rr_avg = sum(r.rr_avg_temp for r in tyre_rows if r.rr_avg_temp) / max(len(tyre_rows), 1)
-
-    session_data = {
-        "car_name": body.car_name,
-        "track_name": body.track_name,
-        "air_temp": body.air_temp,
-        "track_temp": body.track_temp,
-        "weather": body.weather,
-        "best_lap_time": body.best_lap_time,
-        "avg_lap_time": body.avg_lap_time,
-        "lap_count": body.lap_count,
-        "delta_to_pb": delta_to_pb,
-        "fl_temp_avg": round(fl_avg, 1),
-        "fr_temp_avg": round(fr_avg, 1),
-        "rl_temp_avg": round(rl_avg, 1),
-        "rr_temp_avg": round(rr_avg, 1),
-        "temp_imbalance": round(abs(fl_avg - fr_avg), 1),
-    }
-
-    async def _call():
-        try:
-            result = await gemini.generate_coaching(session_data)
-            tips = result.get("tips", [{}, {}, {}])
-            coaching = CoachingResult(
-                id=str(uuid.uuid4()),
-                session_id=session_id,
-                headline=result.get("headline", ""),
-                tip_1_title=tips[0].get("title", "") if len(tips) > 0 else "",
-                tip_1_detail=tips[0].get("detail", "") if len(tips) > 0 else "",
-                tip_2_title=tips[1].get("title", "") if len(tips) > 1 else "",
-                tip_2_detail=tips[1].get("detail", "") if len(tips) > 1 else "",
-                tip_3_title=tips[2].get("title", "") if len(tips) > 2 else "",
-                tip_3_detail=tips[2].get("detail", "") if len(tips) > 2 else "",
-            )
-            from backend.database import SessionLocal
-            db2 = SessionLocal()
-            db2.add(coaching)
-            db2.commit()
-            db2.close()
-        except Exception as e:
-            print(f"[coaching] Gemini call failed: {e}")
-
+async def _run_coaching_bg(session_id: str, body: SessionCreate):
+    """
+    Background task: calls Gemini and stores the coaching result.
+    Uses its own DB session (the request's session is already closed by now).
+    Failures are logged but never re-raised — a missing coaching result is
+    shown gracefully in the UI.
+    """
+    from backend.database import SessionLocal
+    db = SessionLocal()
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(_call())
-        else:
-            loop.run_until_complete(_call())
+        pb = db.query(PersonalBest).filter_by(car_name=body.car_name, track_name=body.track_name).first()
+        delta_to_pb = None
+        if pb and body.best_lap_time:
+            delta_to_pb = round(body.best_lap_time - pb.best_lap_time, 3)
+
+        tyre_rows = db.query(TyreData).filter_by(session_id=session_id).all()
+        fl_avg = sum(r.fl_avg_temp for r in tyre_rows if r.fl_avg_temp) / max(len(tyre_rows), 1)
+        fr_avg = sum(r.fr_avg_temp for r in tyre_rows if r.fr_avg_temp) / max(len(tyre_rows), 1)
+        rl_avg = sum(r.rl_avg_temp for r in tyre_rows if r.rl_avg_temp) / max(len(tyre_rows), 1)
+        rr_avg = sum(r.rr_avg_temp for r in tyre_rows if r.rr_avg_temp) / max(len(tyre_rows), 1)
+
+        session_data = {
+            "car_name": body.car_name,
+            "track_name": body.track_name,
+            "air_temp": body.air_temp,
+            "track_temp": body.track_temp,
+            "weather": body.weather,
+            "best_lap_time": body.best_lap_time,
+            "avg_lap_time": body.avg_lap_time,
+            "lap_count": body.lap_count,
+            "delta_to_pb": delta_to_pb,
+            "fl_temp_avg": round(fl_avg, 1),
+            "fr_temp_avg": round(fr_avg, 1),
+            "rl_temp_avg": round(rl_avg, 1),
+            "rr_temp_avg": round(rr_avg, 1),
+            "temp_imbalance": round(abs(fl_avg - fr_avg), 1),
+        }
+
+        result = await gemini.generate_coaching(session_data)
+        tips = result.get("tips", [{}, {}, {}])
+        coaching = CoachingResult(
+            id=str(uuid.uuid4()),
+            session_id=session_id,
+            headline=result.get("headline", ""),
+            tip_1_title=tips[0].get("title", "") if len(tips) > 0 else "",
+            tip_1_detail=tips[0].get("detail", "") if len(tips) > 0 else "",
+            tip_2_title=tips[1].get("title", "") if len(tips) > 1 else "",
+            tip_2_detail=tips[1].get("detail", "") if len(tips) > 1 else "",
+            tip_3_title=tips[2].get("title", "") if len(tips) > 2 else "",
+            tip_3_detail=tips[2].get("detail", "") if len(tips) > 2 else "",
+        )
+        db.add(coaching)
+        db.commit()
+        print(f"[coaching] Generated for session {session_id}")
     except Exception as e:
-        print(f"[coaching] Could not schedule: {e}")
+        print(f"[coaching] Gemini call failed for {session_id}: {e}")
+    finally:
+        db.close()
 
 
 @app.get("/api/sessions")

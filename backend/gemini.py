@@ -1,8 +1,11 @@
 import os
 import json
+import asyncio
 import httpx
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+
+_RETRY_DELAYS = [5, 15, 30]  # seconds between retries on 429/503
 
 
 def _api_key() -> str:
@@ -10,6 +13,20 @@ def _api_key() -> str:
     if not key:
         raise ValueError("GEMINI_API_KEY not set")
     return key
+
+
+async def _post(payload: dict, key: str | None = None) -> httpx.Response:
+    """POST to Gemini with automatic retry on 429 (rate limit) and 503 (overload)."""
+    url = f"{GEMINI_API_URL}?key={key or _api_key()}"
+    for attempt, delay in enumerate([0] + _RETRY_DELAYS):
+        if delay:
+            await asyncio.sleep(delay)
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json=payload)
+        if resp.status_code not in (429, 503):
+            return resp
+        print(f"[gemini] {resp.status_code} on attempt {attempt + 1}, retrying in {_RETRY_DELAYS[attempt]}s...")
+    return resp  # return last response after all retries exhausted
 
 
 async def generate_coaching(session_data: dict) -> dict:
@@ -55,13 +72,8 @@ Respond with exactly this JSON structure:
         "generationConfig": {"responseMimeType": "application/json"},
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{GEMINI_API_URL}?key={_api_key()}",
-            json=payload,
-        )
-        resp.raise_for_status()
-
+    resp = await _post(payload)
+    resp.raise_for_status()
     raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     return json.loads(raw)
 
@@ -82,14 +94,8 @@ This week vs last week (same car and track):
 Write the progress note now."""
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{GEMINI_API_URL}?key={_api_key()}",
-            json=payload,
-        )
-        resp.raise_for_status()
-
+    resp = await _post(payload)
+    resp.raise_for_status()
     return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 

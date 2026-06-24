@@ -18,5 +18,6 @@ def get_db():
 
 
 def init_db():
-    from backend.models import Session, CoachingResult, TyreData, PersonalBest, WeeklyNarrative, Setting
+    # Models are imported in main.py before this is called, registering
+    # all tables with Base.metadata. We just create them here.
     Base.metadata.create_all(bind=engine)

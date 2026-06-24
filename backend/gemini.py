@@ -29,6 +29,26 @@ async def _post(payload: dict, key: str | None = None) -> httpx.Response:
     return resp  # return last response after all retries exhausted
 
 
+def _extract_text(body: dict) -> str:
+    """
+    Safely pull the text out of a Gemini response body.
+    Raises ValueError with a clear message instead of crashing on empty lists,
+    which happens when Gemini is overloaded or blocks the response.
+    """
+    candidates = body.get("candidates", [])
+    if not candidates:
+        block = body.get("promptFeedback", {}).get("blockReason", "unknown")
+        raise ValueError(f"Gemini returned no candidates (blockReason: {block})")
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        finish = candidates[0].get("finishReason", "unknown")
+        raise ValueError(f"Gemini candidate has no parts (finishReason: {finish})")
+    text = parts[0].get("text", "")
+    if not text:
+        raise ValueError("Gemini returned empty text")
+    return text
+
+
 async def generate_coaching(session_data: dict) -> dict:
     prompt = f"""You are an expert sim racing coach. Analyse this driver's session data and give exactly 3 specific, actionable coaching tips. Be direct. Reference specific corners or track sections where possible. Do not give generic advice.
 
@@ -67,19 +87,13 @@ Respond with exactly this JSON structure:
   "headline": "one sentence overall session summary"
 }}"""
 
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json"},
-    }
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
     resp = await _post(payload)
     resp.raise_for_status()
-    body = resp.json()
-    candidates = body.get("candidates", [])
-    if not candidates:
-        block = body.get("promptFeedback", {}).get("blockReason", "no candidates returned")
-        raise ValueError(f"Gemini returned empty response: {block}")
-    raw = candidates[0]["content"]["parts"][0]["text"]
+    raw = _extract_text(resp.json())
+    # Strip markdown code fences Gemini sometimes wraps JSON in
+    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(raw)
 
 
@@ -101,11 +115,7 @@ Write the progress note now."""
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = await _post(payload)
     resp.raise_for_status()
-    body = resp.json()
-    candidates = body.get("candidates", [])
-    if not candidates:
-        raise ValueError("Gemini returned empty response for narrative")
-    return candidates[0]["content"]["parts"][0]["text"].strip()
+    return _extract_text(resp.json()).strip()
 
 
 async def test_api_key(key: str) -> dict:

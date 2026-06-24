@@ -25,9 +25,9 @@ export default function Onboarding({ onComplete }) {
     try {
       await api.testGeminiKey(geminiKey)
       await api.updateSetting('gemini_api_key', geminiKey)
-      setGeminiStatus('valid')
-    } catch {
-      setGeminiStatus('invalid')
+      setGeminiStatus({ ok: true })
+    } catch (e) {
+      setGeminiStatus({ ok: false, error: e.message })
     } finally {
       setTesting(false)
     }
@@ -124,8 +124,10 @@ export default function Onboarding({ onComplete }) {
                   {testing ? '…' : 'Test'}
                 </button>
               </div>
-              {geminiStatus === 'valid' && <p className="text-green-400 text-xs">Key is valid — you're good to go.</p>}
-              {geminiStatus === 'invalid' && <p className="text-red-400 text-xs">Couldn't verify key. Check it and try again.</p>}
+              {geminiStatus?.ok && <p className="text-green-400 text-xs">Key is valid — you're good to go.</p>}
+              {geminiStatus?.ok === false && (
+                <p className="text-red-400 text-xs font-mono break-all">{geminiStatus.error}</p>
+              )}
               <p className="text-[11px] text-gray-600">You can skip this and add the key later in Settings.</p>
             </div>
           )}

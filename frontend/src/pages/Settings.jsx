@@ -52,10 +52,10 @@ export default function Settings() {
     setTesting(true)
     setTestResult(null)
     try {
-      await api.testGeminiKey(geminiKey || 'current')
-      setTestResult('valid')
-    } catch {
-      setTestResult('invalid')
+      await api.testGeminiKey(geminiKey)
+      setTestResult({ ok: true })
+    } catch (e) {
+      setTestResult({ ok: false, error: e.message })
     } finally {
       setTesting(false)
     }
@@ -108,8 +108,10 @@ export default function Settings() {
               {testing ? 'Testing…' : 'Test'}
             </button>
           </div>
-          {testResult === 'valid' && <p className="text-green-400 text-xs">Key is valid.</p>}
-          {testResult === 'invalid' && <p className="text-red-400 text-xs">Key is invalid or Gemini is unreachable.</p>}
+          {testResult?.ok && <p className="text-green-400 text-xs">Key is valid.</p>}
+          {testResult?.ok === false && (
+            <p className="text-red-400 text-xs font-mono break-all">{testResult.error}</p>
+          )}
           {geminiKey && (
             <button
               onClick={handleSaveGeminiKey}

@@ -93,8 +93,16 @@ Write the progress note now."""
     return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 
-async def test_api_key(key: str) -> bool:
+async def test_api_key(key: str) -> dict:
+    """Returns {"ok": True} or {"ok": False, "error": "<Gemini's actual message>"}."""
     payload = {"contents": [{"parts": [{"text": "Say OK"}]}]}
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.post(f"{GEMINI_API_URL}?key={key}", json=payload)
-        return resp.status_code == 200
+    if resp.status_code == 200:
+        return {"ok": True}
+    try:
+        body = resp.json()
+        message = body.get("error", {}).get("message", resp.text)
+    except Exception:
+        message = resp.text
+    return {"ok": False, "error": f"HTTP {resp.status_code}: {message}"}

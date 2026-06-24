@@ -475,10 +475,10 @@ def status():
 
 @app.post("/api/gemini/test")
 async def test_gemini(body: GeminiTestRequest):
-    ok = await gemini.test_api_key(body.key)
-    if ok:
+    result = await gemini.test_api_key(body.key)
+    if result["ok"]:
         return {"valid": True}
-    raise HTTPException(status_code=400, detail="API key invalid or Gemini unreachable")
+    raise HTTPException(status_code=400, detail=result["error"])
 
 
 # ── Serve built frontend ──────────────────────────────────────────────────────

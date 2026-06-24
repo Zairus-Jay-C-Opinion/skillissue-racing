@@ -38,6 +38,7 @@ app.add_middleware(
 def startup():
     init_db()
     _seed_default_settings()
+    _load_gemini_key_from_db()
 
 
 def _seed_default_settings():
@@ -56,6 +57,21 @@ def _seed_default_settings():
             db.add(Setting(key=k, value=v))
     db.commit()
     db.close()
+
+
+def _load_gemini_key_from_db():
+    """
+    If the user saved a Gemini key via the Settings UI, it lives in the DB.
+    On every startup we read it back into os.environ so gemini.py can find it,
+    even after uvicorn restarts. The .env file takes priority if set there.
+    """
+    from backend.database import SessionLocal
+    db = SessionLocal()
+    row = db.query(Setting).filter_by(key="gemini_api_key").first()
+    db.close()
+    if row and row.value and not os.getenv("GEMINI_API_KEY"):
+        os.environ["GEMINI_API_KEY"] = row.value
+        print("[startup] Gemini API key loaded from database.")
 
 
 # ── Pydantic schemas ─────────────────────────────────────────────────────────

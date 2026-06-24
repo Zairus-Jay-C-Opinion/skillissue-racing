@@ -3,6 +3,10 @@ import json
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Optional
+from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware

@@ -139,13 +139,13 @@ export default function Progress() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: '#888899', fontSize: 10 }}
+                  tick={{ fill: '#d0d0de', fontSize: 10 }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.07)' }}
                   tickLine={false}
                 />
                 <YAxis
                   domain={['auto', 'auto']}
-                  tick={{ fill: '#888899', fontSize: 10 }}
+                  tick={{ fill: '#d0d0de', fontSize: 10 }}
                   tickFormatter={v => fmtTime(v)}
                   width={68}
                   axisLine={false}

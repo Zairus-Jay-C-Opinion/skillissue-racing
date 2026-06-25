@@ -23,9 +23,9 @@ export default {
         negative:   '#ef4444',
         warning:    '#f59e0b',
         // Text
-        'text-primary':   '#f0f0f0',
-        'text-secondary': '#888899',
-        'text-dim':       '#4a4a5a',
+        'text-primary':   '#f5f5f5',
+        'text-secondary': '#d0d0de',
+        'text-dim':       '#b0b0c4',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

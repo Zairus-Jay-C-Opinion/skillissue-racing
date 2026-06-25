@@ -433,7 +433,7 @@ class TrayManager:
 
     def _open_dashboard(self):
         import webbrowser
-        webbrowser.open("http://localhost:5173")
+        webbrowser.open("http://localhost:8000")
 
     def _toggle_overlay(self):
         if self._overlay.isVisible():

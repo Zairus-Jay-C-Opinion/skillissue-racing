@@ -79,6 +79,9 @@ def main():
     threading.Thread(target=_start_backend, daemon=True).start()
     time.sleep(2)  # give uvicorn time to bind
 
+    import webbrowser
+    webbrowser.open("http://localhost:8000")
+
     settings = _get_settings_from_db()
     telemetry_folder    = settings.get("telemetry_folder",    os.path.expanduser("~/Documents/iRacing/telemetry"))
     setups_watch_folder = settings.get("setups_watch_folder", os.path.expanduser("~/Downloads/iRacing-setups"))
@@ -123,7 +126,7 @@ def main():
 
     overlay.show()
 
-    log.info("Agent running — Dashboard: http://localhost:5173")
+    log.info("Agent running — Dashboard: http://localhost:8000")
     app.exec()
     os._exit(0)
 

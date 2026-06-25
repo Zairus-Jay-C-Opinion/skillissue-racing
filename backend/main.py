@@ -528,6 +528,29 @@ async def test_gemini(body: GeminiTestRequest):
 
 # ── Serve built frontend ──────────────────────────────────────────────────────
 
-frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-if os.path.isdir(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+import sys as _sys
+from fastapi.responses import FileResponse as _FileResponse
+
+def _dist() -> Path:
+    """Works both in development and when frozen by PyInstaller."""
+    if getattr(_sys, "frozen", False):
+        return Path(_sys._MEIPASS) / "frontend" / "dist"
+    return Path(__file__).parent.parent / "frontend" / "dist"
+
+_DIST = _dist()
+
+# Mount /assets separately so Vite's cache-busted filenames are served fast
+if (_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(_DIST / "assets")), name="assets")
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def spa_fallback(full_path: str):
+    """Serve the React SPA. Returns individual files if they exist (bg.mp4,
+    favicon, etc.), otherwise always returns index.html so client-side
+    routing works."""
+    if _DIST.exists():
+        target = _DIST / full_path
+        if target.is_file():
+            return _FileResponse(str(target))
+        return _FileResponse(str(_DIST / "index.html"))
+    return {"error": "Frontend not built. Run: cd frontend && npm run build"}

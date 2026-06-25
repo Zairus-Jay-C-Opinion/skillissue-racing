@@ -73,12 +73,38 @@ export default function Progress() {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="flex items-center gap-2 text-xs px-4 py-2 bg-brand/90 hover:bg-brand rounded text-white disabled:opacity-40 transition-colors"
+          className="text-xs px-4 py-2 bg-brand/90 hover:bg-brand rounded text-white disabled:opacity-40 transition-colors"
         >
-          <Icon name="auto_awesome" className="text-[14px]" />
           {generating ? 'Generating…' : "This week's report"}
         </button>
       </div>
+
+      {/* Weekly narratives — shown first so generated report is immediately visible */}
+      {narratives.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Icon name="history_edu" className="text-[16px] text-text-secondary" />
+            <span className="text-xs text-text-secondary uppercase tracking-wider font-semibold">Weekly reports</span>
+          </div>
+          {narratives.map(n => (
+            <div key={n.id} className="glass rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs text-text-secondary font-mono">
+                  {new Date(n.week_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  {' – '}
+                  {new Date(n.week_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+                {n.delta_seconds != null && (
+                  <span className={`text-xs font-mono ${n.delta_seconds < 0 ? 'text-teal' : 'text-negative'}`}>
+                    {n.delta_seconds < 0 ? '' : '+'}{n.delta_seconds.toFixed(3)}s vs prev week
+                  </span>
+                )}
+              </div>
+              <p className="text-muted text-sm leading-relaxed">{n.narrative_text}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* PB trend charts */}
       {Object.keys(pbTrendData).length === 0 && (
@@ -140,35 +166,11 @@ export default function Progress() {
         </div>
       ))}
 
-      {/* Weekly narratives */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Icon name="history_edu" className="text-[16px] text-text-secondary" />
-          <span className="text-xs text-text-secondary uppercase tracking-wider font-semibold">Weekly reports</span>
+      {narratives.length === 0 && (
+        <div className="glass-low rounded-lg p-6 text-center">
+          <p className="text-text-dim text-sm">No reports yet. Generate your first one above.</p>
         </div>
-        {narratives.length === 0 && (
-          <div className="glass-low rounded-lg p-6 text-center">
-            <p className="text-text-dim text-sm">No reports yet. Generate your first one above.</p>
-          </div>
-        )}
-        {narratives.map(n => (
-          <div key={n.id} className="glass rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xs text-text-secondary font-mono">
-                {new Date(n.week_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                {' – '}
-                {new Date(n.week_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </div>
-              {n.delta_seconds != null && (
-                <span className={`text-xs font-mono ${n.delta_seconds < 0 ? 'text-teal' : 'text-negative'}`}>
-                  {n.delta_seconds < 0 ? '' : '+'}{n.delta_seconds.toFixed(3)}s vs prev week
-                </span>
-              )}
-            </div>
-            <p className="text-muted text-sm leading-relaxed">{n.narrative_text}</p>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   )
 }

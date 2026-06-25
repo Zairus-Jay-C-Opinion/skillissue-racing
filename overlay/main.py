@@ -190,13 +190,12 @@ class TrayManager:
         self._overlay = overlay
         self._status  = status
         self._quit_fn = quit_fn
-        self._overlay_locked = False   # mirrors overlay._locked
+        self._overlay_locked = False
 
-        self._tray = QSystemTrayIcon(_make_tray_icon())
-        self._tray.setToolTip("Skill Issue Racing")
-
-        menu = QMenu()
-        menu.setStyleSheet("""
+        # Build menu first so actions are stored as instance vars (prevents GC
+        # from breaking the triggered signal connections after __init__ returns)
+        self._menu = QMenu()
+        self._menu.setStyleSheet("""
             QMenu {
                 background-color: #1a0f18;
                 border: 1px solid rgba(255,255,255,0.12);
@@ -205,50 +204,43 @@ class TrayManager:
                 font-family: "Segoe UI";
                 font-size: 13px;
             }
-            QMenu::item {
-                padding: 6px 20px 6px 14px;
-            }
-            QMenu::item:selected {
-                background-color: rgba(80,50,50,0.8);
-                color: #ffffff;
-            }
-            QMenu::item:disabled {
-                color: #888899;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: rgba(255,255,255,0.10);
-                margin: 3px 0;
-            }
+            QMenu::item { padding: 6px 20px 6px 14px; }
+            QMenu::item:selected { background-color: rgba(80,50,50,0.8); color: #ffffff; }
+            QMenu::item:disabled { color: #666677; }
+            QMenu::separator { height: 1px; background: rgba(255,255,255,0.10); margin: 3px 0; }
         """)
 
-        header = menu.addAction("Skill Issue Racing v1.0")
-        header.setEnabled(False)
-        menu.addSeparator()
+        self._header_action = self._menu.addAction("Skill Issue Racing v1.0")
+        self._header_action.setEnabled(False)
+        self._menu.addSeparator()
 
-        open_action = menu.addAction("Open Dashboard")
-        open_action.triggered.connect(self._open_dashboard)
+        self._open_action = self._menu.addAction("Open Dashboard")
+        self._open_action.triggered.connect(self._open_dashboard)
 
-        overlay_action = menu.addAction("Show / Hide Overlay")
-        overlay_action.triggered.connect(self._toggle_overlay)
+        self._overlay_action = self._menu.addAction("Show / Hide Overlay")
+        self._overlay_action.triggered.connect(self._toggle_overlay)
 
-        self._lock_action = menu.addAction("Lock Overlay  (enable click-through)")
+        self._lock_action = self._menu.addAction("Lock Overlay  (enable click-through)")
         self._lock_action.triggered.connect(self._toggle_lock)
 
-        status_action = menu.addAction("Agent Status")
-        status_action.triggered.connect(self._toggle_status)
+        self._status_action = self._menu.addAction("Agent Status")
+        self._status_action.triggered.connect(self._toggle_status)
 
-        menu.addSeparator()
+        self._menu.addSeparator()
 
-        quit_action = menu.addAction("Quit")
-        quit_action.triggered.connect(self._quit)
+        self._quit_action = self._menu.addAction("Quit")
+        self._quit_action.triggered.connect(self._quit)
 
-        self._tray.setContextMenu(menu)
+        # Wire the same menu to the pill's right-click before the tray shows
+        overlay.set_context_menu(self._menu)
+
+        # Defer tray creation until the event loop is running — on Windows 11
+        # the system tray isn't guaranteed to be ready during __init__
+        self._tray = QSystemTrayIcon(_make_tray_icon())
+        self._tray.setToolTip("Skill Issue Racing")
+        self._tray.setContextMenu(self._menu)
         self._tray.activated.connect(self._on_activated)
-        self._tray.show()
-
-        # Right-clicking the pill also opens this menu
-        overlay.set_context_menu(menu)
+        QTimer.singleShot(500, self._tray.show)
 
     def _open_dashboard(self):
         import webbrowser
@@ -263,10 +255,11 @@ class TrayManager:
     def _toggle_lock(self):
         self._overlay_locked = not self._overlay_locked
         self._overlay.set_locked(self._overlay_locked)
-        if self._overlay_locked:
-            self._lock_action.setText("Unlock Overlay  (drag to reposition)")
-        else:
-            self._lock_action.setText("Lock Overlay  (enable click-through)")
+        self._lock_action.setText(
+            "Unlock Overlay  (drag to reposition)"
+            if self._overlay_locked else
+            "Lock Overlay  (enable click-through)"
+        )
 
     def _toggle_status(self):
         if self._status.isVisible():

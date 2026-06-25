@@ -250,7 +250,7 @@ def main():
         import httpx
         resp = httpx.post("http://localhost:8000/api/sessions", json=result, timeout=30)
         if resp.status_code == 201:
-            print(f"\nUploaded → session id: {resp.json()['id']}")
+            print(f"\nUploaded -> session id: {resp.json()['id']}")
         elif resp.status_code == 409:
             print("\nSession already exists in DB.")
         else:

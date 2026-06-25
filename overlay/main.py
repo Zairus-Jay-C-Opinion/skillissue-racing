@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QSystemTrayIcon, QMenu,
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QAction
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QAction, QCursor
 
 from overlay.widgets import PillHUD, SectorStrip, StatusWindow, push_event
 
@@ -128,13 +128,10 @@ class OverlayWindow(QWidget):
         state = iracing_sdk.get_state()
 
         if not state:
-            self.setVisible(True)
             self.pill.update_lap(None)
             self.pill.update_delta(None)
             self.strip.reset()
             return
-
-        self.setVisible(True)
 
         current   = state.get("lap_current_time")
         dist_pct  = state.get("lap_dist_pct", 0.0)
@@ -273,7 +270,12 @@ class TrayManager:
             self._status.show()
 
     def _on_activated(self, reason):
-        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            # Left single-click — show menu at cursor so the user can unlock
+            # the overlay even when click-through is active and the pill
+            # can't be right-clicked
+            self._menu.popup(QCursor.pos())
+        elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
             self._open_dashboard()
 
     def _quit(self):

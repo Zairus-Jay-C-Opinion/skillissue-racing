@@ -86,7 +86,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon=None,      # add .ico here later
+    icon="assets/icon.ico",
 )
 
 coll = COLLECT(

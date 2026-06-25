@@ -94,14 +94,20 @@ class PillHUD(QWidget):
         col.addWidget(val)
         return w, val
 
+    def set_unlocked_hint(self, unlocked: bool):
+        """Show an orange border when the overlay is in drag-to-reposition mode."""
+        self._unlocked = unlocked
+        self.update()
+
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         path = QPainterPath()
         path.addRoundedRect(0, 0, self.W, self.H, self.R, self.R)
         p.fillPath(path, QBrush(C_BG_PILL))
-        pen = QPen(C_BORDER)
-        pen.setWidthF(1.0)
+        unlocked = getattr(self, "_unlocked", True)
+        pen = QPen(QColor(232, 93, 4, 200) if unlocked else C_BORDER)
+        pen.setWidthF(1.5 if unlocked else 1.0)
         p.setPen(pen)
         p.drawPath(path)
 

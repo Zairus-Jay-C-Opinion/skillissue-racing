@@ -77,13 +77,14 @@ class OverlayWindow(QWidget):
         self._last_car = ""
         self._last_track = ""
 
+        self._locked = False   # start unlocked so the user can drag to position
+
         self.setWindowFlags(
             Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setWindowFlag(Qt.WindowType.WindowTransparentForInput, True)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -98,6 +99,7 @@ class OverlayWindow(QWidget):
 
         self.adjustSize()
         self._position()
+        self.pill.set_unlocked_hint(True)   # orange border = drag mode active
 
         timer = QTimer(self)
         timer.timeout.connect(self._tick)
@@ -151,13 +153,22 @@ class OverlayWindow(QWidget):
 
         self.strip.set_progress(dist_pct)
 
-    # Alt + drag to reposition
+    def set_locked(self, locked: bool):
+        """
+        Locked = click-through (for use during racing).
+        Unlocked = draggable with an orange border hint (for positioning).
+        """
+        self._locked = locked
+        self.setWindowFlag(Qt.WindowType.WindowTransparentForInput, locked)
+        self.pill.set_unlocked_hint(not locked)
+        self.show()   # window flags only take effect after re-show
+
     def mousePressEvent(self, e):
-        if e.modifiers() == Qt.KeyboardModifier.AltModifier:
+        if not self._locked and e.button() == Qt.MouseButton.LeftButton:
             self._drag = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
 
     def mouseMoveEvent(self, e):
-        if e.modifiers() == Qt.KeyboardModifier.AltModifier and hasattr(self, "_drag"):
+        if not self._locked and e.buttons() == Qt.MouseButton.LeftButton and hasattr(self, "_drag"):
             self.move(e.globalPosition().toPoint() - self._drag)
 
 
@@ -169,6 +180,7 @@ class TrayManager:
         self._overlay = overlay
         self._status  = status
         self._quit_fn = quit_fn
+        self._overlay_locked = False   # mirrors overlay._locked
 
         self._tray = QSystemTrayIcon(_make_tray_icon())
         self._tray.setToolTip("Skill Issue Racing")
@@ -210,6 +222,9 @@ class TrayManager:
         overlay_action = menu.addAction("Show / Hide Overlay")
         overlay_action.triggered.connect(self._toggle_overlay)
 
+        self._lock_action = menu.addAction("Lock Overlay  (enable click-through)")
+        self._lock_action.triggered.connect(self._toggle_lock)
+
         status_action = menu.addAction("Agent Status")
         status_action.triggered.connect(self._toggle_status)
 
@@ -231,6 +246,14 @@ class TrayManager:
             self._overlay.hide()
         else:
             self._overlay.show()
+
+    def _toggle_lock(self):
+        self._overlay_locked = not self._overlay_locked
+        self._overlay.set_locked(self._overlay_locked)
+        if self._overlay_locked:
+            self._lock_action.setText("Unlock Overlay  (drag to reposition)")
+        else:
+            self._lock_action.setText("Lock Overlay  (enable click-through)")
 
     def _toggle_status(self):
         if self._status.isVisible():

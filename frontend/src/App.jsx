@@ -103,7 +103,7 @@ export default function App() {
             <div className="glass-low rounded p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-positive shrink-0" />
-                <span className="text-[10px] text-text-secondary font-mono">Agent monitoring</span>
+                <span className="text-[10px] text-text-secondary font-mono">Agent Monitoring</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iracing ? 'bg-teal shadow-[0_0_5px_#41eec2]' : 'bg-text-dim'}`} />

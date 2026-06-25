@@ -194,21 +194,35 @@ class TrayManager:
         self._menu = QMenu()
         self._menu.setStyleSheet("""
             QMenu {
-                background-color: #1a0f18;
+                background-color: #0d0d14;
                 border: 1px solid rgba(255,255,255,0.12);
-                padding: 4px 0;
+                padding: 6px 0;
                 color: #f0f0f0;
                 font-family: "Segoe UI";
                 font-size: 13px;
+                min-width: 220px;
             }
-            QMenu::item { padding: 6px 20px 6px 14px; }
-            QMenu::item:selected { background-color: rgba(80,50,50,0.8); color: #ffffff; }
-            QMenu::item:disabled { color: #666677; }
-            QMenu::separator { height: 1px; background: rgba(255,255,255,0.10); margin: 3px 0; }
+            QMenu::item { padding: 7px 20px 7px 16px; }
+            QMenu::item:selected { background-color: rgba(232,93,4,0.15); color: #ffffff; }
+            QMenu::item:disabled { color: #555566; }
+            QMenu::separator { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
         """)
 
-        self._header_action = self._menu.addAction("Skill Issue Racing v1.0")
+        self._header_action = self._menu.addAction("SKILLISSUE RACING")
         self._header_action.setEnabled(False)
+
+        self._menu.addSeparator()
+
+        # Live status lines (updated on menu open via aboutToShow)
+        self._agent_status_action = self._menu.addAction("◉  Agent: Running")
+        self._agent_status_action.setEnabled(False)
+        self._iracing_status_action = self._menu.addAction("○  iRacing: Checking...")
+        self._iracing_status_action.setEnabled(False)
+
+        self._last_session_action = self._menu.addAction("")
+        self._last_session_action.setEnabled(False)
+        self._last_session_action.setVisible(False)
+
         self._menu.addSeparator()
 
         self._open_action = self._menu.addAction("Open Dashboard")
@@ -231,6 +245,12 @@ class TrayManager:
         # Wire the same menu to the pill's right-click before the tray shows
         overlay.set_context_menu(self._menu)
 
+        # Poll status every 5 s in the background — never blocks the event loop
+        self._status_timer = QTimer()
+        self._status_timer.timeout.connect(self._refresh_menu_status)
+        self._status_timer.start(5000)
+        QTimer.singleShot(500, self._refresh_menu_status)  # initial fetch
+
         # Defer tray creation until the event loop is running — on Windows 11
         # the system tray isn't guaranteed to be ready during __init__
         self._tray = QSystemTrayIcon(_make_tray_icon())
@@ -238,6 +258,33 @@ class TrayManager:
         self._tray.setContextMenu(self._menu)
         self._tray.activated.connect(self._on_activated)
         QTimer.singleShot(500, self._tray.show)
+
+    def _refresh_menu_status(self):
+        """Update live status lines just before the menu shows."""
+        try:
+            import httpx
+            resp = httpx.get("http://localhost:8000/api/status", timeout=1)
+            data = resp.json() if resp.status_code == 200 else {}
+            iracing = data.get("iracing_running", False)
+            dot = "◉" if iracing else "○"
+            label = "Connected" if iracing else "Not detected"
+            self._iracing_status_action.setText(f"{dot}  iRacing: {label}")
+        except Exception:
+            self._iracing_status_action.setText("○  iRacing: Offline")
+
+        try:
+            import httpx
+            resp = httpx.get("http://localhost:8000/api/sessions?limit=1", timeout=1)
+            if resp.status_code == 200:
+                items = resp.json().get("items", [])
+                if items:
+                    s = items[0]
+                    self._last_session_action.setText(
+                        f"Last: {s.get('track_name','?')}  ·  {s.get('car_name','?')}"
+                    )
+                    self._last_session_action.setVisible(True)
+        except Exception:
+            pass
 
     def _open_dashboard(self):
         import webbrowser

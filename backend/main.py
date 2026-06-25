@@ -27,7 +27,7 @@ from backend.models import (
 from backend.tyre_advisor import analyse_tyre_data
 from backend import gemini
 
-app = FastAPI(title="Sim Racing Companion", version="0.1.0")
+app = FastAPI(title="SkillIssue Racing", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

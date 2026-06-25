@@ -214,9 +214,9 @@ class StatusWindow(QWidget):
         h_row = QHBoxLayout(header)
         h_row.setContentsMargins(14, 0, 12, 0)
 
-        title = QLabel("SimAgent v1.0")
-        title.setFont(QFont("Consolas", 9, QFont.Weight.Medium))
-        title.setStyleSheet("color: #f0f0f0; background: transparent;")
+        title = QLabel("SkillIssue Racing")
+        title.setFont(QFont("Consolas", 9, QFont.Weight.Bold))
+        title.setStyleSheet("color: #e85d04; background: transparent; letter-spacing: 1px;")
 
         close_btn = QLabel("✕")
         close_btn.setFont(QFont("Segoe UI", 10))

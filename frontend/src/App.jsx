@@ -44,17 +44,27 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <nav className="w-[220px] shrink-0 flex flex-col h-screen border-r border-glass-border" style={{ background: 'rgba(10,10,15,0.95)' }}>
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Top header */}
+      <header
+        className="shrink-0 h-14 border-b border-glass-border flex items-center px-5 gap-6 z-10"
+        style={{ background: 'rgba(10,10,15,0.98)' }}
+      >
         {/* Branding */}
-        <div className="px-5 pt-6 pb-5 border-b border-glass-border">
-          <div className="font-mono text-brand text-sm font-bold tracking-tight italic leading-tight">SKILLISSUE</div>
-          <div className="text-text-secondary text-[10px] font-semibold uppercase tracking-[0.2em] mt-0.5">Racing</div>
+        <div className="flex flex-col leading-none">
+          <span className="font-mono text-brand text-sm font-bold tracking-tight italic">SKILLISSUE</span>
+          <span className="text-text-secondary text-[9px] font-semibold uppercase tracking-[0.25em] mt-0.5">Racing</span>
         </div>
 
-        {/* Nav links */}
-        <div className="flex-1 py-3 space-y-0.5 px-2">
+      </header>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar — nav only */}
+        <nav
+          className="w-[180px] shrink-0 relative flex flex-col h-full border-r border-glass-border pt-3 px-2 space-y-0.5"
+          style={{ background: 'rgba(10,10,15,0.95)' }}
+        >
           {NAV.map(({ to, label, icon }) => (
             <NavLink
               key={to}
@@ -72,32 +82,35 @@ export default function App() {
               {label}
             </NavLink>
           ))}
-        </div>
 
-        {/* Status panels */}
-        <div className="px-3 pb-4 space-y-2 border-t border-glass-border pt-4">
-          <div className="glass-low rounded p-3 flex items-center gap-3">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${iracing ? 'bg-teal shadow-[0_0_6px_#41eec2]' : 'bg-text-dim'}`} />
-            <div>
-              <div className="text-[10px] text-text-secondary uppercase tracking-wider">iRacing</div>
-              <div className={`text-xs font-mono font-medium mt-0.5 ${iracing ? 'text-teal' : 'text-text-dim'}`}>
-                {iracing ? 'Connected' : 'Offline'}
+          {/* Status panel at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 px-3 pb-4 pt-3 border-t border-glass-border space-y-2">
+            <div className="glass-low rounded p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-positive shrink-0" />
+                <span className="text-[10px] text-text-secondary font-mono">Agent monitoring</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iracing ? 'bg-teal shadow-[0_0_5px_#41eec2]' : 'bg-text-dim'}`} />
+                <span className={`text-[10px] font-mono ${iracing ? 'text-teal' : 'text-text-dim'}`}>
+                  iRacing {iracing ? 'Connected' : 'Offline'}
+                </span>
               </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/sessions" element={<Sessions />} />
-          <Route path="/sessions/:id" element={<SessionDetail />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </main>
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/sessions" element={<Sessions />} />
+            <Route path="/sessions/:id" element={<SessionDetail />} />
+            <Route path="/progress" element={<Progress />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   )
 }

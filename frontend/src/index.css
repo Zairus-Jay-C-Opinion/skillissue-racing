@@ -2,11 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-surface text-white font-mono;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  body {
+    background-color: #0a0a0f;
+    color: #f0f0f0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0f1117; }
-::-webkit-scrollbar-thumb { background: #2a2d3e; border-radius: 3px; }
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .glass-low {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+/* Brand orange (#e85d04) — defined here because Tailwind's JIT
+   doesn't reliably resolve custom theme colors for bg-* utilities
+   when the config uses ESM export default with PostCSS. */
+@layer utilities {
+  .text-brand     { color: #e85d04; }
+  .bg-brand       { background-color: #e85d04; }
+  .bg-brand\/90   { background-color: rgba(232, 93, 4, 0.9); }
+  .border-brand   { border-color: #e85d04; }
+  .border-l-brand { border-left-color: #e85d04; }
+
+  /* Teal / status colors */
+  .text-teal       { color: #41eec2; }
+  .bg-teal         { background-color: #41eec2; }
+  .bg-teal\/20     { background-color: rgba(65, 238, 194, 0.2); }
+  .bg-teal\/25     { background-color: rgba(65, 238, 194, 0.25); }
+  .border-teal     { border-color: #41eec2; }
+  .border-l-teal   { border-left-color: #41eec2; }
+  .shadow-teal     { box-shadow: 0 0 6px #41eec2; }
+
+  /* Semantic */
+  .text-negative     { color: #ef4444; }
+  .bg-negative\/30   { background-color: rgba(239, 68, 68, 0.3); }
+  .border-negative   { border-color: #ef4444; }
+  .border-l-negative { border-left-color: #ef4444; }
+  .text-warning      { color: #f59e0b; }
+  .bg-warning\/5     { background-color: rgba(245, 158, 11, 0.05); }
+  .bg-warning\/20    { background-color: rgba(245, 158, 11, 0.2); }
+  .border-warning    { border-color: #f59e0b; }
+
+  /* Text palette */
+  .text-text-primary   { color: #f0f0f0; }
+  .text-text-secondary { color: #888899; }
+  .text-text-dim       { color: #4a4a5a; }
+
+  /* Surfaces */
+  .bg-surface     { background-color: #0a0a0f; }
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }

@@ -400,10 +400,6 @@ def list_narratives(db: DBSession = Depends(get_db)):
 @app.post("/api/progress/generate")
 async def generate_narrative(db: DBSession = Depends(get_db)):
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-    prev_week_start = week_start - timedelta(days=7)
-    prev_week_end = week_start - timedelta(days=1)
 
     def week_sessions(start, end):
         return db.query(SessionModel).filter(
@@ -411,11 +407,22 @@ async def generate_narrative(db: DBSession = Depends(get_db)):
             SessionModel.session_date <= datetime.combine(end, datetime.max.time()),
         ).all()
 
-    this_week = week_sessions(week_start, week_end)
-    last_week = week_sessions(prev_week_start, prev_week_end)
+    # Find the most recent Monday that has at least one session, up to 8 weeks back.
+    week_start = today - timedelta(days=today.weekday())
+    this_week = []
+    for _ in range(8):
+        week_end = week_start + timedelta(days=6)
+        this_week = week_sessions(week_start, week_end)
+        if this_week:
+            break
+        week_start -= timedelta(weeks=1)
+    else:
+        raise HTTPException(status_code=400, detail="No sessions found in the last 8 weeks")
 
-    if not this_week:
-        raise HTTPException(status_code=400, detail="No sessions this week to report on")
+    week_end = week_start + timedelta(days=6)
+    prev_week_start = week_start - timedelta(days=7)
+    prev_week_end = week_start - timedelta(days=1)
+    last_week = week_sessions(prev_week_start, prev_week_end)
 
     # Find most common car/track
     from collections import Counter
@@ -443,14 +450,19 @@ async def generate_narrative(db: DBSession = Depends(get_db)):
 
     narrative = await gemini.generate_weekly_narrative(stats)
 
-    row = WeeklyNarrative(
-        id=str(uuid.uuid4()),
-        week_start=week_start,
-        week_end=week_end,
-        narrative_text=narrative,
-        delta_seconds=delta,
-    )
-    db.add(row)
+    row = db.query(WeeklyNarrative).filter_by(week_start=week_start).first()
+    if row:
+        row.narrative_text = narrative
+        row.delta_seconds = delta
+    else:
+        row = WeeklyNarrative(
+            id=str(uuid.uuid4()),
+            week_start=week_start,
+            week_end=week_end,
+            narrative_text=narrative,
+            delta_seconds=delta,
+        )
+        db.add(row)
     db.commit()
     return {"narrative": narrative}
 

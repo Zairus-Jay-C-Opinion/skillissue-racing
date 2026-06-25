@@ -1,17 +1,34 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api'
 
-function Field({ label, settingKey, value, onChange, type = 'text', description }) {
+function Icon({ name, className = '' }) {
+  return <span className={`material-symbols-outlined select-none ${className}`}>{name}</span>
+}
+
+function Field({ label, settingKey, value, onChange, type = 'text', description, placeholder }) {
   return (
-    <div className="space-y-1">
-      <label className="text-xs text-gray-400 uppercase tracking-wider">{label}</label>
-      {description && <p className="text-[11px] text-gray-600">{description}</p>}
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">{label}</label>
+      {description && <p className="text-[11px] text-text-dim leading-relaxed">{description}</p>}
       <input
         type={type}
         value={value}
+        placeholder={placeholder}
         onChange={e => onChange(settingKey, e.target.value)}
-        className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent font-mono"
+        className="w-full glass-low rounded px-3 py-2.5 text-sm text-white focus:outline-none border border-transparent focus:border-brand/40 font-mono transition-colors placeholder-text-dim"
       />
+    </div>
+  )
+}
+
+function Section({ icon, title, children }) {
+  return (
+    <div className="glass rounded-lg p-5 space-y-4">
+      <div className="flex items-center gap-2 border-b border-glass-border pb-3">
+        <Icon name={icon} className="text-[16px] text-text-secondary" />
+        <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{title}</span>
+      </div>
+      {children}
     </div>
   )
 }
@@ -24,9 +41,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    api.getSettings().then(s => {
-      setSettings(s)
-    })
+    api.getSettings().then(s => setSettings(s))
   }, [])
 
   const handleChange = (key, value) => {
@@ -44,6 +59,7 @@ export default function Settings() {
     if (!geminiKey) return
     await api.updateSetting('gemini_api_key', geminiKey)
     setGeminiKey('')
+    setTestResult(null)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -62,17 +78,16 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h1 className="text-lg font-bold text-white">Settings</h1>
+    <div className="p-6 space-y-5 max-w-2xl">
+      <h1 className="text-xl font-bold text-white">Settings</h1>
 
-      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-        <div className="text-xs text-gray-500 uppercase tracking-wider border-b border-border pb-2">Folder paths</div>
-
+      <Section icon="folder_open" title="Folder paths">
         <Field
           label="iRacing telemetry folder"
           settingKey="telemetry_folder"
           value={settings.telemetry_folder || ''}
           onChange={handleChange}
+          placeholder="C:\Users\...\Documents\iRacing\telemetry"
           description="Where iRacing writes .ibt files. Default: Documents/iRacing/telemetry"
         />
         <Field
@@ -80,62 +95,66 @@ export default function Settings() {
           settingKey="setups_watch_folder"
           value={settings.setups_watch_folder || ''}
           onChange={handleChange}
+          placeholder="Leave blank to disable"
           description="Drop .sto setup files here and they'll be auto-installed."
         />
-      </div>
+      </Section>
 
-      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-        <div className="text-xs text-gray-500 uppercase tracking-wider border-b border-border pb-2">Gemini API</div>
-
-        <div className="space-y-1">
-          <label className="text-xs text-gray-400 uppercase tracking-wider">API key</label>
-          <p className="text-[11px] text-gray-600">
-            Get a free key from <span className="text-accent">aistudio.google.com</span>. Free tier: 1,500 requests/day.
+      <Section icon="auto_awesome" title="Gemini API">
+        <div className="space-y-2">
+          <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">API key</label>
+          <p className="text-[11px] text-text-dim leading-relaxed">
+            Get a free key from <span className="text-brand">aistudio.google.com</span>. Free tier: 1,500 requests/day.
           </p>
           <div className="flex gap-2">
             <input
               type="password"
-              placeholder={settings.gemini_api_key === '••••••••' ? 'Key saved — enter a new one to replace' : 'Paste API key here'}
+              placeholder={settings.gemini_api_key === '••••••••' ? 'Key saved — enter new to replace' : 'Paste API key here'}
               value={geminiKey}
-              onChange={e => setGeminiKey(e.target.value)}
-              className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent font-mono"
+              onChange={e => { setGeminiKey(e.target.value); setTestResult(null) }}
+              className="flex-1 glass-low rounded px-3 py-2.5 text-sm text-white focus:outline-none border border-transparent focus:border-brand/40 font-mono transition-colors placeholder-text-dim"
             />
             <button
               onClick={handleTestGemini}
               disabled={testing || !geminiKey}
-              className="px-3 py-2 bg-border rounded text-xs text-white hover:bg-gray-600 disabled:opacity-40 transition-colors"
+              className="px-4 py-2.5 glass-low rounded text-xs text-text-secondary hover:text-white disabled:opacity-30 transition-colors border border-glass-border"
             >
               {testing ? 'Testing…' : 'Test'}
             </button>
           </div>
-          {testResult?.ok && <p className="text-green-400 text-xs">Key is valid.</p>}
+          {testResult?.ok && (
+            <p className="flex items-center gap-1.5 text-teal text-xs">
+              <Icon name="check_circle" className="text-[14px]" />
+              Key is valid.
+            </p>
+          )}
           {testResult?.ok === false && (
-            <p className="text-red-400 text-xs font-mono break-all">{testResult.error}</p>
+            <p className="flex items-start gap-1.5 text-negative text-xs font-mono break-all">
+              <Icon name="error" className="text-[14px] shrink-0 mt-0.5" />
+              {testResult.error}
+            </p>
           )}
           {geminiKey && (
-            <button
-              onClick={handleSaveGeminiKey}
-              className="text-xs text-accent hover:underline"
-            >
+            <button onClick={handleSaveGeminiKey} className="text-xs text-brand hover:opacity-80 transition-opacity">
               Save key
             </button>
           )}
         </div>
-      </div>
+      </Section>
 
-      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-        <div className="text-xs text-gray-500 uppercase tracking-wider border-b border-border pb-2">Overlay position</div>
+      <Section icon="open_in_new" title="Overlay position">
         <div className="flex gap-4">
-          <Field label="X (px)" settingKey="overlay_position_x" value={settings.overlay_position_x || ''} onChange={handleChange} />
-          <Field label="Y (px)" settingKey="overlay_position_y" value={settings.overlay_position_y || ''} onChange={handleChange} />
+          <Field label="X (px)" settingKey="overlay_position_x" value={settings.overlay_position_x || ''} onChange={handleChange} placeholder="0" />
+          <Field label="Y (px)" settingKey="overlay_position_y" value={settings.overlay_position_y || ''} onChange={handleChange} placeholder="0" />
         </div>
-      </div>
+      </Section>
 
       <button
         onClick={handleSave}
-        className="px-5 py-2 bg-accent rounded text-white text-sm hover:bg-blue-700 transition-colors"
+        className="flex items-center gap-2 px-5 py-2.5 bg-brand/90 hover:bg-brand rounded text-white text-sm transition-colors"
       >
-        {saved ? 'Saved ✓' : 'Save settings'}
+        <Icon name={saved ? 'check' : 'save'} className="text-[16px]" />
+        {saved ? 'Saved' : 'Save settings'}
       </button>
     </div>
   )

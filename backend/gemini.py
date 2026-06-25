@@ -25,7 +25,10 @@ async def _post(payload: dict, key: str | None = None) -> httpx.Response:
             resp = await client.post(url, json=payload)
         if resp.status_code not in (429, 503):
             return resp
-        print(f"[gemini] {resp.status_code} on attempt {attempt + 1}, retrying in {_RETRY_DELAYS[attempt]}s...")
+        if attempt < len(_RETRY_DELAYS):
+            print(f"[gemini] {resp.status_code} on attempt {attempt + 1}, retrying in {_RETRY_DELAYS[attempt]}s...")
+        else:
+            print(f"[gemini] {resp.status_code} on attempt {attempt + 1}, all retries exhausted")
     return resp  # return last response after all retries exhausted
 
 

@@ -48,7 +48,7 @@ export default function Onboarding({ onComplete }) {
         {/* Step indicator */}
         <div className="flex gap-1.5">
           {STEPS.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? 'bg-accent' : 'bg-border'}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? 'bg-brand' : 'bg-border'}`} />
           ))}
         </div>
 
@@ -79,7 +79,7 @@ export default function Onboarding({ onComplete }) {
                 placeholder="C:\Users\You\Documents\iRacing\telemetry"
                 value={telemetryFolder}
                 onChange={e => setTelemetryFolder(e.target.value)}
-                className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent font-mono"
+                className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
               />
               <p className="text-[11px] text-gray-600">Leave blank to use the default (Documents/iRacing/telemetry).</p>
             </div>
@@ -96,7 +96,7 @@ export default function Onboarding({ onComplete }) {
                 placeholder="C:\Users\You\Downloads\iRacing-setups"
                 value={setupsFolder}
                 onChange={e => setSetupFolder(e.target.value)}
-                className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent font-mono"
+                className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
               />
             </div>
           )}
@@ -106,7 +106,7 @@ export default function Onboarding({ onComplete }) {
             <div className="space-y-3">
               <p className="text-sm text-gray-400">
                 Sim Companion uses Gemini 2.0 Flash for AI coaching. Get a free API key at{' '}
-                <span className="text-accent">aistudio.google.com</span> — free tier is 1,500 requests/day.
+                <span className="text-brand">aistudio.google.com</span> — free tier is 1,500 requests/day.
               </p>
               <div className="flex gap-2">
                 <input
@@ -114,7 +114,7 @@ export default function Onboarding({ onComplete }) {
                   placeholder="AIza…"
                   value={geminiKey}
                   onChange={e => { setGeminiKey(e.target.value); setGeminiStatus(null) }}
-                  className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent font-mono"
+                  className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
                 />
                 <button
                   onClick={testGemini}
@@ -164,7 +164,7 @@ export default function Onboarding({ onComplete }) {
               ← Back
             </button>
             {step < STEPS.length - 1 ? (
-              <button onClick={next} className="px-5 py-2 bg-accent rounded text-white text-sm hover:bg-blue-700">
+              <button onClick={next} className="px-5 py-2 bg-brand rounded text-white text-sm hover:bg-blue-700">
                 Continue →
               </button>
             ) : (

@@ -4,16 +4,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: '#0f1117',
-        card: '#1a1d2e',
-        border: '#2a2d3e',
-        accent: '#3b82f6',
-        green: { DEFAULT: '#22c55e', dim: '#166534' },
-        red: { DEFAULT: '#ef4444', dim: '#7f1d1d' },
-        amber: { DEFAULT: '#f59e0b', dim: '#78350f' },
+        // Backgrounds
+        surface:   '#0a0a0f',
+        'surface-low': '#0f1018',
+        'surface-mid': '#13162a',
+        'surface-high': '#1a1d2e',
+        // Glass
+        'glass-bg':     'rgba(255, 255, 255, 0.06)',
+        'glass-border': 'rgba(255, 255, 255, 0.10)',
+        // Brand / primary accent
+        brand:     '#e85d04',
+        'brand-dim': '#7a3102',
+        // Status colors
+        teal:       '#41eec2',
+        'teal-dim': '#1a5c4a',
+        // Semantic
+        positive:   '#22c55e',
+        negative:   '#ef4444',
+        warning:    '#f59e0b',
+        // Text
+        'text-primary':   '#f0f0f0',
+        'text-secondary': '#888899',
+        'text-dim':       '#4a4a5a',
       },
       fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+      },
+      backdropBlur: {
+        glass: '16px',
       },
     },
   },

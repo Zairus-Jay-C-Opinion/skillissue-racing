@@ -6,11 +6,24 @@ import SectorDelta from '../components/SectorDelta'
 import TyreCard from '../components/TyreCard'
 import CoachingCard from '../components/CoachingCard'
 
+function Icon({ name, className = '' }) {
+  return <span className={`material-symbols-outlined select-none ${className}`}>{name}</span>
+}
+
 function fmtTime(s) {
   if (!s) return '—'
   const m = Math.floor(s / 60)
   const sec = (s % 60).toFixed(3).padStart(6, '0')
   return `${m}:${sec}`
+}
+
+function Stat({ label, value, mono = true, valueClass = 'text-white' }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1">{label}</div>
+      <div className={`${mono ? 'font-mono' : ''} text-sm ${valueClass}`}>{value}</div>
+    </div>
+  )
 }
 
 export default function SessionDetail() {
@@ -35,82 +48,76 @@ export default function SessionDetail() {
     })
   }, [id])
 
-  if (!session) return <div className="text-gray-500 text-sm animate-pulse">Loading…</div>
+  if (!session) return (
+    <div className="p-6 space-y-4">
+      {[1, 2, 3].map(i => <div key={i} className="glass rounded-lg h-24 animate-pulse" />)}
+    </div>
+  )
 
-  const s1Delta = session.sector_1_best && pb?.lap_telemetry ? null : null // placeholder
   const delta = session.delta_to_pb
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Link to="/sessions" className="text-gray-500 hover:text-white text-sm">← Sessions</Link>
-      </div>
+    <div className="p-6 space-y-5 max-w-4xl">
+      {/* Back nav */}
+      <Link to="/sessions" className="inline-flex items-center gap-1 text-text-secondary hover:text-white text-sm transition-colors">
+        <Icon name="arrow_back" className="text-[16px]" />
+        Sessions
+      </Link>
 
-      {/* Header */}
-      <div className="bg-card border border-border rounded-lg p-5">
+      {/* Header card */}
+      <div className="glass rounded-lg p-5">
         <div className="flex justify-between items-start">
           <div>
-            <div className="text-white font-bold text-base">{session.car_name}</div>
-            <div className="text-gray-400 text-sm">{session.track_name}</div>
-            <div className="text-gray-600 text-xs mt-1">
-              {new Date(session.session_date).toLocaleString('en-GB')}
-              {session.air_temp && ` · ${session.air_temp}°C air`}
-              {session.track_temp && ` / ${session.track_temp}°C track`}
-              {session.weather && ` · ${session.weather}`}
+            <h1 className="text-white font-bold text-lg leading-tight">{session.car_name}</h1>
+            <div className="text-text-secondary text-sm mt-0.5">{session.track_name}</div>
+            <div className="text-text-dim text-xs font-mono mt-1.5 flex flex-wrap gap-x-3">
+              <span>{new Date(session.session_date).toLocaleString('en-GB')}</span>
+              {session.air_temp && <span>{session.air_temp}°C air</span>}
+              {session.track_temp && <span>{session.track_temp}°C track</span>}
+              {session.weather && <span>{session.weather}</span>}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Best lap</div>
-            <div className="text-white font-mono font-bold text-lg">{fmtTime(session.best_lap_time)}</div>
+            <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Best lap</div>
+            <div className="text-white font-mono font-bold text-2xl">{fmtTime(session.best_lap_time)}</div>
             {delta != null && (
-              <div className={`font-mono text-sm ${delta >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+              <div className={`font-mono text-sm mt-0.5 ${delta >= 0 ? 'text-negative' : 'text-teal'}`}>
                 {delta >= 0 ? '+' : ''}{delta.toFixed(3)}s vs PB
               </div>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 border-t border-border mt-4 pt-4">
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Average lap</div>
-            <div className="text-white font-mono mt-1">{fmtTime(session.avg_lap_time)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Laps completed</div>
-            <div className="text-white font-mono mt-1">{session.lap_count || '—'}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">PB for combo</div>
-            <div className="text-white font-mono mt-1">{fmtTime(pb?.best_lap_time)}</div>
-          </div>
+        <div className="grid grid-cols-3 gap-4 border-t border-glass-border mt-4 pt-4">
+          <Stat label="Average lap" value={fmtTime(session.avg_lap_time)} />
+          <Stat label="Laps completed" value={session.lap_count || '—'} />
+          <Stat label="PB for combo" value={fmtTime(pb?.best_lap_time)} />
         </div>
       </div>
 
-      {/* Telemetry chart */}
-      <div className="bg-card border border-border rounded-lg p-5">
-        <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Telemetry — throttle / brake / speed</div>
-        <TelemetryChart rawData={session.raw_json} />
-      </div>
+      {/* AI Coaching */}
+      <CoachingCard coaching={coaching} />
 
-      <div className="grid grid-cols-2 gap-5">
-        {/* Sector deltas */}
-        <SectorDelta
-          s1={session.sector_1_best && pb ? session.sector_1_best - (pb.sector_1_best ?? session.sector_1_best) : null}
-          s2={session.sector_2_best && pb ? session.sector_2_best - (pb.sector_2_best ?? session.sector_2_best) : null}
-          s3={session.sector_3_best && pb ? session.sector_3_best - (pb.sector_3_best ?? session.sector_3_best) : null}
-        />
-
-        {/* Tyre card */}
+      {/* Sector deltas + Tyres */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Tyre temperatures</div>
+          <div className="text-[10px] font-semibold text-text-dim uppercase tracking-widest mb-2">Sector deltas</div>
+          <SectorDelta
+            s1={session.sector_1_best && pb?.sector_1_best != null ? session.sector_1_best - pb.sector_1_best : null}
+            s2={session.sector_2_best && pb?.sector_2_best != null ? session.sector_2_best - pb.sector_2_best : null}
+            s3={session.sector_3_best && pb?.sector_3_best != null ? session.sector_3_best - pb.sector_3_best : null}
+          />
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold text-text-dim uppercase tracking-widest mb-2">Tyre temperatures</div>
           <TyreCard tyreData={tyres} />
         </div>
       </div>
 
-      {/* Coaching */}
-      <div>
-        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">AI Coaching</div>
-        <CoachingCard coaching={coaching} />
+      {/* Telemetry chart */}
+      <div className="glass rounded-lg p-5">
+        <div className="text-[10px] font-semibold text-text-dim uppercase tracking-widest mb-4">Telemetry — throttle / brake / speed</div>
+        <TelemetryChart rawData={session.raw_json} />
       </div>
     </div>
   )

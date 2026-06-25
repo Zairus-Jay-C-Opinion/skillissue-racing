@@ -155,8 +155,8 @@ def seed(no_coaching: bool):
     today = datetime.now()
     sessions_created = 0
 
-    # 3 weeks × 2–3 sessions per combo per week
-    for week_offset in range(3, 0, -1):  # week 3 ago → this week
+    # 4 weeks × 2–3 sessions per combo per week (includes current week)
+    for week_offset in range(3, -1, -1):  # 3 weeks ago → this week
         week_start = today - timedelta(weeks=week_offset)
         for combo in COMBOS:
             sessions_this_week = random.randint(2, 3)

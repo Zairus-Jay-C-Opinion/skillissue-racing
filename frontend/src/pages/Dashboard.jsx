@@ -4,6 +4,10 @@ import { api } from '../api'
 import CoachingCard from '../components/CoachingCard'
 import TyreCard from '../components/TyreCard'
 
+function Icon({ name, className = '' }) {
+  return <span className={`material-symbols-outlined select-none ${className}`}>{name}</span>
+}
+
 function fmtTime(s) {
   if (!s) return '—'
   const m = Math.floor(s / 60)
@@ -11,10 +15,19 @@ function fmtTime(s) {
   return `${m}:${sec}`
 }
 
-function fmtDelta(d) {
-  if (d == null) return null
-  const sign = d >= 0 ? '+' : ''
-  return `${sign}${d.toFixed(3)}s`
+function MetricCard({ label, value, icon, valueClass = 'text-white', sub }) {
+  return (
+    <div className="glass rounded-lg p-5 flex flex-col justify-between min-h-[96px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-widest">{label}</span>
+        {icon && <Icon name={icon} className="text-[16px] text-text-dim" />}
+      </div>
+      <div className="mt-3 flex items-baseline gap-2">
+        <span className={`font-mono text-xl font-bold leading-none ${valueClass}`}>{value}</span>
+        {sub && <span className="text-xs text-text-secondary font-mono">{sub}</span>}
+      </div>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -39,92 +52,86 @@ export default function Dashboard() {
         const sessionsThisWeek = allSessions.items.filter(sess => {
           const d = new Date(sess.session_date)
           const now = new Date()
-          const weekAgo = new Date(now - 7 * 86400000)
-          return d >= weekAgo
+          return d >= new Date(now - 7 * 86400000)
         })
         const totalLaps = allSessions.items.reduce((acc, s) => acc + (s.lap_count || 0), 0)
-        setStats({
-          sessionsThisWeek: sessionsThisWeek.length,
-          totalLaps,
-          totalSessions: allSessions.total,
-        })
+        setStats({ sessionsThisWeek: sessionsThisWeek.length, totalLaps, totalSessions: allSessions.total })
         setLoading(false)
       })
     }).catch(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
+  if (loading) return (
+    <div className="p-6 space-y-4">
+      {[1,2,3].map(i => <div key={i} className="glass rounded-lg h-24 animate-pulse" />)}
+    </div>
+  )
 
   if (!lastSession) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-4xl">🏁</div>
-        <p className="text-gray-400 text-sm">No sessions yet. Take some laps in iRacing with telemetry enabled (Alt+L).</p>
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
+        <Icon name="flag" className="text-[48px] text-text-dim" />
+        <p className="text-text-secondary text-sm max-w-xs">No sessions yet. Take some laps in iRacing with telemetry enabled (Alt+L).</p>
       </div>
     )
   }
 
-  const delta = fmtDelta(lastSession.delta_to_pb)
+  const delta = lastSession.delta_to_pb
+  const sessionDate = new Date(lastSession.session_date)
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <h1 className="text-lg font-bold text-white">Dashboard</h1>
-
-      {/* Last session summary */}
-      <div className="bg-card border border-border rounded-lg p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <div className="text-white font-medium">{lastSession.car_name}</div>
-            <div className="text-gray-400 text-sm">{lastSession.track_name}</div>
-            <div className="text-gray-600 text-xs mt-1">
-              {new Date(lastSession.session_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-            </div>
-          </div>
-          <Link to={`/sessions/${lastSession.id}`} className="text-xs text-accent hover:underline">
-            Full detail →
+    <div className="p-6 space-y-4 max-w-5xl">
+      {/* Context header */}
+      <header className="mb-2">
+        <h1 className="text-2xl font-bold text-white leading-tight">
+          {lastSession.car_name} <span className="text-text-secondary font-normal">|</span> {lastSession.track_name}
+        </h1>
+        <div className="flex items-center gap-4 mt-1.5 text-text-secondary text-xs font-mono">
+          <span className="flex items-center gap-1">
+            <Icon name="calendar_today" className="text-[13px]" />
+            {sessionDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {' · '}
+            {sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <Link to={`/sessions/${lastSession.id}`} className="flex items-center gap-1 text-brand hover:opacity-80 transition-opacity ml-auto">
+            <Icon name="open_in_new" className="text-[13px]" />
+            Full detail
           </Link>
         </div>
-        <div className="grid grid-cols-3 gap-4 border-t border-border pt-4">
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Best lap</div>
-            <div className="text-white font-mono font-bold mt-1">{fmtTime(lastSession.best_lap_time)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Delta to PB</div>
-            <div className={`font-mono font-bold mt-1 ${delta === null ? 'text-gray-500' : lastSession.delta_to_pb >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-              {delta || '—'}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">Laps</div>
-            <div className="text-white font-mono font-bold mt-1">{lastSession.lap_count || '—'}</div>
-          </div>
-        </div>
+      </header>
+
+      {/* 4 metric cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard
+          label="Best Lap"
+          value={fmtTime(lastSession.best_lap_time)}
+          icon="timer"
+        />
+        <MetricCard
+          label="Delta to PB"
+          value={delta == null ? '—' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}s`}
+          icon="compare_arrows"
+          valueClass={delta == null ? 'text-text-dim' : delta < 0 ? 'text-teal' : 'text-negative'}
+        />
+        <MetricCard
+          label="Laps"
+          value={lastSession.lap_count || '—'}
+          icon="repeat"
+        />
+        <MetricCard
+          label="Sessions this week"
+          value={stats?.sessionsThisWeek ?? '—'}
+          icon="date_range"
+          sub={stats ? `/ ${stats.totalSessions} total` : ''}
+        />
       </div>
 
-      {/* Quick stats */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: 'Sessions this week', val: stats.sessionsThisWeek },
-            { label: 'Total laps', val: stats.totalLaps },
-            { label: 'Total sessions', val: stats.totalSessions },
-          ].map(({ label, val }) => (
-            <div key={label} className="bg-card border border-border rounded-lg p-4">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</div>
-              <div className="text-2xl font-bold text-white mt-1">{val}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-5">
-        <div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">AI Coaching</div>
+      {/* Coaching + Tyres */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-8">
           <CoachingCard coaching={coaching} />
         </div>
-        <div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Tyre Temps</div>
+        <div className="col-span-12 lg:col-span-4">
           <TyreCard tyreData={tyres} />
         </div>
       </div>

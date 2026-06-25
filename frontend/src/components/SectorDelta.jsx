@@ -7,16 +7,18 @@ function Bar({ label, delta }) {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-gray-400 text-xs w-6">{label}</span>
-      <div className="flex-1 h-5 bg-border rounded overflow-hidden relative">
+      <span className="text-text-secondary text-xs font-mono w-6">{label}</span>
+      <div className="flex-1 h-4 glass-low rounded overflow-hidden relative">
         {!isNull && (
           <div
-            className={`h-full rounded transition-all ${positive ? 'bg-red-dim' : 'bg-green-dim'}`}
+            className={`h-full rounded transition-all duration-500 ${positive ? 'bg-negative/30' : 'bg-teal/25'}`}
             style={{ width: `${pct}%` }}
           />
         )}
       </div>
-      <span className={`text-xs font-mono w-16 text-right ${isNull ? 'text-gray-600' : positive ? 'text-red-400' : 'text-green-400'}`}>
+      <span className={`text-xs font-mono w-16 text-right ${
+        isNull ? 'text-text-dim' : positive ? 'text-negative' : 'text-teal'
+      }`}>
         {isNull ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(3)}s`}
       </span>
     </div>
@@ -25,8 +27,8 @@ function Bar({ label, delta }) {
 
 export default function SectorDelta({ s1, s2, s3 }) {
   return (
-    <div className="bg-card border border-border rounded-lg p-5 space-y-3">
-      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Sector deltas vs PB</div>
+    <div className="glass rounded-lg p-5 space-y-3 h-full">
+      <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">vs PB</div>
       <Bar label="S1" delta={s1} />
       <Bar label="S2" delta={s2} />
       <Bar label="S3" delta={s3} />

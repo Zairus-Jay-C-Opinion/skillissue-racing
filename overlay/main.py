@@ -108,7 +108,10 @@ class OverlayWindow(QWidget):
         from agent import iracing_sdk
         state = iracing_sdk.get_state()
         if not state:
-            self.setVisible(False)
+            # Show placeholder values so the overlay is visible for positioning
+            self.setVisible(True)
+            self.lap_widget.update(None, None)
+            self.delta_widget.update_delta(None)
             return
 
         self.setVisible(True)
@@ -144,3 +147,7 @@ def start_overlay():
     window = OverlayWindow()
     window.show()
     app.exec()
+
+
+if __name__ == "__main__":
+    start_overlay()

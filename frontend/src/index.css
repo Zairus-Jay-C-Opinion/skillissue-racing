@@ -56,6 +56,8 @@
   /* Text palette */
   .text-text-primary   { color: #f0f0f0; }
   .text-text-secondary { color: #888899; }
+  /* Readable body text — brighter than secondary labels */
+  .text-muted { color: #b8b8cc; }
   .text-text-dim       { color: #4a4a5a; }
 
   /* Surfaces */

@@ -12,7 +12,7 @@ export default function CoachingCard({ coaching }) {
     return (
       <div className="glass rounded-lg p-5 flex flex-col gap-2 min-h-[180px] justify-center">
         <Icon name="psychology" className="text-[32px] text-text-dim" />
-        <p className="text-text-secondary text-sm mt-1">
+        <p className="text-muted text-sm mt-1">
           No coaching yet — analysis will appear after the next session is processed.
         </p>
       </div>
@@ -34,7 +34,7 @@ export default function CoachingCard({ coaching }) {
       </div>
 
       {/* Headline */}
-      <p className="text-sm text-text-secondary leading-relaxed">{coaching.headline}</p>
+      <p className="text-sm text-muted leading-relaxed">{coaching.headline}</p>
 
       {/* 3 tip cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -44,7 +44,7 @@ export default function CoachingCard({ coaching }) {
               <Icon name={TIP_ICONS[i] || 'lightbulb'} className={`text-[16px] ${TIP_ICON_COLORS[i] || 'text-brand'}`} />
               <span className="text-xs font-semibold text-white leading-tight">{tip.title}</span>
             </div>
-            <p className="text-xs text-text-secondary leading-relaxed">{tip.detail}</p>
+            <p className="text-xs text-muted leading-relaxed">{tip.detail}</p>
           </div>
         ))}
       </div>

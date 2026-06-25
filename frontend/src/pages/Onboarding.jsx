@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { api } from '../api'
 
 const STEPS = [
-  { id: 'welcome', title: 'Welcome to Sim Companion' },
+  { id: 'welcome', title: 'Welcome to Skill Issue Racing' },
   { id: 'telemetry', title: 'Telemetry folder' },
   { id: 'setups', title: 'Setups watch folder' },
   { id: 'gemini', title: 'Gemini API key' },
@@ -58,7 +58,7 @@ export default function Onboarding({ onComplete }) {
           {/* Welcome */}
           {step === 0 && (
             <div className="space-y-3 text-sm text-gray-400">
-              <p>Sim Companion runs alongside <strong className="text-white">Garage 61</strong> — it doesn't replace it.</p>
+              <p>Skill Issue Racing runs alongside <strong className="text-white">Garage 61</strong> — it doesn't replace it.</p>
               <p>It reads the same iRacing telemetry files and adds features Garage 61 doesn't have:</p>
               <ul className="space-y-1.5 pl-4">
                 {['AI post-session coaching (Gemini)', 'Real-time delta overlay', 'Tyre temperature advisor', 'Auto setup installer', 'Weekly progress narrative'].map(f => (
@@ -105,7 +105,7 @@ export default function Onboarding({ onComplete }) {
           {step === 3 && (
             <div className="space-y-3">
               <p className="text-sm text-gray-400">
-                Sim Companion uses Gemini 2.0 Flash for AI coaching. Get a free API key at{' '}
+                Skill Issue Racing uses Gemini 2.0 Flash for AI coaching. Get a free API key at{' '}
                 <span className="text-brand">aistudio.google.com</span> — free tier is 1,500 requests/day.
               </p>
               <div className="flex gap-2">

@@ -49,8 +49,8 @@ export default function App() {
       <nav className="w-[220px] shrink-0 flex flex-col h-screen border-r border-glass-border" style={{ background: 'rgba(10,10,15,0.95)' }}>
         {/* Branding */}
         <div className="px-5 pt-6 pb-5 border-b border-glass-border">
-          <div className="font-mono text-brand text-lg font-bold tracking-tighter italic">SIM</div>
-          <div className="text-text-secondary text-[10px] font-semibold uppercase tracking-[0.2em] mt-0.5">Companion</div>
+          <div className="font-mono text-brand text-sm font-bold tracking-tight italic leading-tight">SKILL ISSUE</div>
+          <div className="text-text-secondary text-[10px] font-semibold uppercase tracking-[0.2em] mt-0.5">Racing</div>
         </div>
 
         {/* Nav links */}

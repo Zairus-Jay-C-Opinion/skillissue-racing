@@ -165,7 +165,7 @@ export default function Progress() {
                 </span>
               )}
             </div>
-            <p className="text-text-secondary text-sm leading-relaxed">{n.narrative_text}</p>
+            <p className="text-muted text-sm leading-relaxed">{n.narrative_text}</p>
           </div>
         ))}
       </div>

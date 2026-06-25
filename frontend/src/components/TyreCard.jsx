@@ -44,7 +44,7 @@ export default function TyreCard({ tyreData }) {
     return (
       <div className="glass rounded-lg p-5 flex flex-col gap-2 min-h-[180px] justify-center">
         <Icon name="tire_repair" className="text-[32px] text-text-dim" />
-        <p className="text-text-secondary text-sm mt-1">No tyre data for this session.</p>
+        <p className="text-muted text-sm mt-1">No tyre data for this session.</p>
       </div>
     )
   }
@@ -65,7 +65,7 @@ export default function TyreCard({ tyreData }) {
 
       {last.recommendation && (
         <div className="border-l-2 border-warning bg-warning/5 px-3 py-2 rounded-r">
-          <p className="text-xs text-text-secondary leading-relaxed">
+          <p className="text-xs text-muted leading-relaxed">
             <span className="text-warning font-semibold">Rec: </span>
             {last.recommendation}
           </p>

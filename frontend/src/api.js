@@ -34,6 +34,7 @@ export const api = {
   }),
 
   getStatus: () => req('/status'),
+  getGeminiStatus: () => req('/gemini/status'),
   testGeminiKey: (key) => req('/gemini/test', {
     method: 'POST',
     body: JSON.stringify({ key }),

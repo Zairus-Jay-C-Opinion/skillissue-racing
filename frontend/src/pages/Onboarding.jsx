@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { api } from '../api'
 
 const STEPS = [
@@ -16,7 +16,12 @@ export default function Onboarding({ onComplete }) {
   const [setupsFolder, setSetupFolder] = useState('')
   const [geminiKey, setGeminiKey] = useState('')
   const [geminiStatus, setGeminiStatus] = useState(null)
+  const [geminiPreConfigured, setGeminiPreConfigured] = useState(false)
   const [testing, setTesting] = useState(false)
+
+  useEffect(() => {
+    api.getGeminiStatus().then(s => setGeminiPreConfigured(s.configured)).catch(() => {})
+  }, [])
 
   const next = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
 
@@ -104,10 +109,17 @@ export default function Onboarding({ onComplete }) {
           {/* Gemini key */}
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-sm text-text-secondary">
-                Skill Issue Racing uses Gemini 2.0 Flash for AI coaching. Get a free API key at{' '}
-                <span className="text-brand">aistudio.google.com</span> — free tier is 1,500 requests/day.
-              </p>
+              {geminiPreConfigured ? (
+                <div className="flex items-center gap-2 glass-low rounded-lg px-4 py-3 border border-teal/20">
+                  <span className="text-teal text-sm">✓</span>
+                  <p className="text-sm text-text-secondary">API key is already configured. You're good to go — or paste a new key below to replace it.</p>
+                </div>
+              ) : (
+                <p className="text-sm text-text-secondary">
+                  Skill Issue Racing uses Gemini 2.0 Flash for AI coaching. Get a free API key at{' '}
+                  <span className="text-brand">aistudio.google.com</span> — free tier is 1,500 requests/day.
+                </p>
+              )}
               <div className="flex gap-2">
                 <input
                   type="password"

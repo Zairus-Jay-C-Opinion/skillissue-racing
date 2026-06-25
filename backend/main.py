@@ -509,7 +509,14 @@ def status():
     return {"backend": "ok", "iracing_running": iracing_running}
 
 
-# ── Gemini key test ───────────────────────────────────────────────────────────
+# ── Gemini status + key test ──────────────────────────────────────────────────
+
+@app.get("/api/gemini/status")
+def gemini_status(db: DBSession = Depends(get_db)):
+    row = db.query(Setting).filter_by(key="gemini_api_key").first()
+    configured = bool(row and row.value and len(row.value) > 10)
+    return {"configured": configured}
+
 
 @app.post("/api/gemini/test")
 async def test_gemini(body: GeminiTestRequest):

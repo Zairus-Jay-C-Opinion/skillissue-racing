@@ -36,12 +36,14 @@ function Section({ icon, title, children }) {
 export default function Settings() {
   const [settings, setSettings] = useState({})
   const [geminiKey, setGeminiKey] = useState('')
+  const [geminiConfigured, setGeminiConfigured] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState(null)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     api.getSettings().then(s => setSettings(s))
+    api.getGeminiStatus().then(s => setGeminiConfigured(s.configured)).catch(() => {})
   }, [])
 
   const handleChange = (key, value) => {
@@ -60,6 +62,7 @@ export default function Settings() {
     await api.updateSetting('gemini_api_key', geminiKey)
     setGeminiKey('')
     setTestResult(null)
+    setGeminiConfigured(true)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -102,7 +105,15 @@ export default function Settings() {
 
       <Section icon="auto_awesome" title="Gemini API">
         <div className="space-y-2">
-          <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">API key</label>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">API key</label>
+            {geminiConfigured && (
+              <span className="flex items-center gap-1 text-teal text-[10px] font-semibold">
+                <Icon name="check_circle" className="text-[12px]" />
+                Configured
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-text-dim leading-relaxed">
             Get a free key from <span className="text-brand">aistudio.google.com</span>. Free tier: 1,500 requests/day.
           </p>

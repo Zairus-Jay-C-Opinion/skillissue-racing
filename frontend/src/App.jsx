@@ -44,11 +44,26 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden relative">
+
+      {/* ── Video background ── */}
+      <div className="absolute inset-0 overflow-hidden">
+        <video
+          className="w-full h-full object-cover"
+          autoPlay loop muted playsInline
+        >
+          <source src="/bg.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0" style={{ background: 'rgba(10,10,15,0.72)' }} />
+      </div>
+
+      {/* ── UI (sits above video via relative stacking context) ── */}
+      <div className="relative flex flex-col h-full">
+
       {/* Top header */}
       <header
         className="shrink-0 h-14 border-b border-glass-border flex items-center px-5 gap-6 z-10"
-        style={{ background: 'rgba(10,10,15,0.98)' }}
+        style={{ background: 'rgba(10,10,15,0.85)' }}
       >
         {/* Branding */}
         <div className="flex flex-col leading-none">
@@ -63,7 +78,7 @@ export default function App() {
         {/* Sidebar — nav only */}
         <nav
           className="w-[180px] shrink-0 relative flex flex-col h-full border-r border-glass-border pt-3 px-2 space-y-0.5"
-          style={{ background: 'rgba(10,10,15,0.95)' }}
+          style={{ background: 'rgba(10,10,15,0.82)' }}
         >
           {NAV.map(({ to, label, icon }) => (
             <NavLink
@@ -111,6 +126,8 @@ export default function App() {
           </Routes>
         </main>
       </div>
+
+      </div>{/* end UI wrapper */}
     </div>
   )
 }

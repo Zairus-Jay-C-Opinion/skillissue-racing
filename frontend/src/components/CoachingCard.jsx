@@ -22,16 +22,10 @@ export default function CoachingCard({ coaching }) {
   return (
     <div className="glass rounded-lg p-5 flex flex-col gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-white font-semibold flex items-center gap-2">
-          <Icon name="psychology" className="text-[18px] text-teal" />
-          Session Summary
-        </h2>
-        <span className="flex items-center gap-1 text-[10px] text-text-secondary bg-white/5 border border-glass-border px-2 py-1 rounded">
-          <Icon name="auto_awesome" className="text-[12px] text-teal" />
-          Gemini
-        </span>
-      </div>
+      <h2 className="text-white font-semibold flex items-center gap-2">
+        <Icon name="psychology" className="text-[18px] text-teal" />
+        Session Summary
+      </h2>
 
       {/* Headline */}
       <p className="text-sm text-muted leading-relaxed">{coaching.headline}</p>

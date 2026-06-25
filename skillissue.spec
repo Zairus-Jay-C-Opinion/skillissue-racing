@@ -20,15 +20,20 @@ google_hidden += collect_submodules("google.ai")
 google_hidden += collect_submodules("google.api_core")
 google_hidden += collect_submodules("google.protobuf")
 
+# pyirsdk — collect everything so the frozen app can import irsdk
+try:
+    irsdk_datas, irsdk_binaries, irsdk_hidden = collect_all("irsdk")
+except Exception:
+    irsdk_datas, irsdk_binaries, irsdk_hidden = [], [], []
+
 a = Analysis(
     ["agent/main.py"],
     pathex=["."],
-    binaries=uvicorn_binaries,
+    binaries=[*uvicorn_binaries, *irsdk_binaries],
     datas=[
-        # React build — served by FastAPI at runtime
         ("frontend/dist", "frontend/dist"),
-        # uvicorn data files (e.g. access log format templates)
         *uvicorn_datas,
+        *irsdk_datas,
     ],
     hiddenimports=[
         # uvicorn
@@ -45,8 +50,8 @@ a = Analysis(
         "httpx",
         "httpx._transports.default",
         "dotenv",
-        "python_dotenv",
         "irsdk",
+        *irsdk_hidden,
         "pydantic",
         "pydantic.deprecated.class_validators",
         "pydantic_core",
@@ -80,7 +85,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=True,   # keep True during testing so errors are visible
+    console=False,
     icon=None,      # add .ico here later
 )
 

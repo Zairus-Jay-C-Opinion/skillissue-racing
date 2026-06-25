@@ -50,9 +50,10 @@ def notify(message: str):
 
 
 def _start_backend():
+    from backend.main import app as _app
     import uvicorn
     uvicorn.run(
-        "backend.main:app",
+        _app,
         host="127.0.0.1",
         port=int(os.getenv("BACKEND_PORT", "8000")),
         log_level="warning",

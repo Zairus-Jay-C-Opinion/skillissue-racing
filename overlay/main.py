@@ -99,6 +99,29 @@ class OverlayWindow(QWidget):
 
         self._context_menu = None   # set by TrayManager after construction
 
+        # ── ACT cue state ────────────────────────────────────────────────────
+        self._tips: list = []   # tip titles from last coaching result for this combo
+        self._tip_idx = 0
+
+        self._tip_timer = QTimer(self)
+        self._tip_timer.timeout.connect(self._next_tip)
+        self._tip_timer.start(20_000)   # rotate tip every 20s
+
+        # Real-time coasting trigger
+        self._coast_frames = 0
+        self._trigger_active = False
+        self._trigger_cooldown = False
+
+        self._trigger_clear = QTimer(self)
+        self._trigger_clear.setSingleShot(True)
+        self._trigger_clear.timeout.connect(self._clear_trigger)
+
+        self._trigger_cooldown_timer = QTimer(self)
+        self._trigger_cooldown_timer.setSingleShot(True)
+        self._trigger_cooldown_timer.timeout.connect(self._end_cooldown)
+
+        push_event("Tip: Use Borderless Windowed in iRacing for best overlay compatibility")
+
         self.adjustSize()
         self._position()
         self.pill.set_unlocked_hint(True)   # orange border = drag mode active
@@ -141,6 +164,7 @@ class OverlayWindow(QWidget):
         if car != self._last_car or track != self._last_track:
             self._last_car, self._last_track = car, track
             _load_pb(car, track)
+            self._load_coaching(car, track)
 
         self.pill.update_lap(current)
 
@@ -151,6 +175,16 @@ class OverlayWindow(QWidget):
             self.pill.update_delta(None)
 
         self.strip.set_progress(dist_pct)
+
+        # ── Real-time trigger detection ──────────────────────────────────────
+        thr = state.get("throttle") or 0.0
+        brk = state.get("brake") or 0.0
+        if thr < 0.05 and brk < 0.05:
+            self._coast_frames += 1
+            if self._coast_frames == 15 and not self._trigger_cooldown:
+                self._fire_trigger("coasting")
+        else:
+            self._coast_frames = 0
 
     def set_context_menu(self, menu):
         """Called by TrayManager so right-clicking the pill opens the same menu."""
@@ -177,6 +211,73 @@ class OverlayWindow(QWidget):
     def mouseMoveEvent(self, e):
         if not self._locked and e.buttons() == Qt.MouseButton.LeftButton and hasattr(self, "_drag"):
             self.move(e.globalPosition().toPoint() - self._drag)
+
+    # ── ACT cue methods ──────────────────────────────────────────────────────
+
+    def _load_coaching(self, car: str, track: str):
+        """Fetch tips for this car+track combo in a background thread."""
+        import threading
+        threading.Thread(target=self._fetch_coaching_bg, args=(car, track), daemon=True).start()
+
+    def _fetch_coaching_bg(self, car: str, track: str):
+        try:
+            import httpx
+            resp = httpx.get(
+                "http://localhost:8000/api/sessions",
+                params={"car": car, "track": track, "limit": 1},
+                timeout=3,
+            )
+            if resp.status_code != 200:
+                return
+            items = resp.json().get("items", [])
+            if not items:
+                return
+            session_id = items[0]["id"]
+
+            resp2 = httpx.get(
+                f"http://localhost:8000/api/sessions/{session_id}/coaching",
+                timeout=3,
+            )
+            if resp2.status_code != 200:
+                return
+            tips = [t["title"] for t in resp2.json().get("tips", []) if t.get("title")]
+            QTimer.singleShot(0, lambda: self._set_tips(tips))
+        except Exception:
+            pass
+
+    def _set_tips(self, tips: list):
+        self._tips = tips
+        self._tip_idx = 0
+        self._update_act_display()
+
+    def _next_tip(self):
+        if not self._tips or self._trigger_active:
+            return
+        self._tip_idx = (self._tip_idx + 1) % len(self._tips)
+        self._update_act_display()
+
+    def _fire_trigger(self, text: str):
+        self._trigger_active = True
+        self._trigger_cooldown = True
+        self.pill.update_act(text)
+        self._trigger_clear.start(5_000)        # show for 5s then revert to tips
+        self._trigger_cooldown_timer.start(10_000)  # no new trigger for 10s
+
+    def _clear_trigger(self):
+        self._trigger_active = False
+        self._update_act_display()
+
+    def _end_cooldown(self):
+        self._trigger_cooldown = False
+
+    def _update_act_display(self):
+        if self._trigger_active:
+            return
+        if self._tips:
+            text = self._tips[self._tip_idx]
+            self.pill.update_act(text[:16] + "…" if len(text) > 17 else text)
+        else:
+            self.pill.update_act(None)
 
 
 # ── TrayManager ─────────────────────────────────────────────────────────────────

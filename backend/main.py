@@ -147,6 +147,9 @@ async def create_session(body: SessionCreate, background_tasks: BackgroundTasks,
                 )
                 db.add(pb)
             pb.best_lap_time = body.best_lap_time
+            pb.sector_1_best = body.sector_1_best
+            pb.sector_2_best = body.sector_2_best
+            pb.sector_3_best = body.sector_3_best
             pb.session_id = session_id
             pb.updated_at = datetime.utcnow()
 
@@ -373,6 +376,9 @@ def get_pb(car: str, track: str, db: DBSession = Depends(get_db)):
         "car_name": pb.car_name,
         "track_name": pb.track_name,
         "best_lap_time": pb.best_lap_time,
+        "sector_1_best": pb.sector_1_best,
+        "sector_2_best": pb.sector_2_best,
+        "sector_3_best": pb.sector_3_best,
         "session_id": pb.session_id,
         "lap_telemetry": json.loads(pb.lap_telemetry) if pb.lap_telemetry else None,
         "updated_at": pb.updated_at.isoformat() if pb.updated_at else None,

@@ -179,12 +179,28 @@ class OverlayWindow(QWidget):
         # ── Real-time trigger detection ──────────────────────────────────────
         thr = state.get("throttle") or 0.0
         brk = state.get("brake") or 0.0
+
+        # Coasting — neither input active for ~0.5s
         if thr < 0.05 and brk < 0.05:
             self._coast_frames += 1
             if self._coast_frames == 15 and not self._trigger_cooldown:
                 self._fire_trigger("coasting")
         else:
             self._coast_frames = 0
+
+        # Abrupt brake release — dropped >0.65 in one frame → suggest trail brake
+        prev_brk = getattr(self, "_prev_brake", 0.0)
+        if prev_brk > 0.70 and brk < 0.05 and not self._trigger_cooldown:
+            self._fire_trigger("trail brake?")
+        self._prev_brake = brk
+
+        # Sustained heavy brake (>0.93 for ~0.5s) — risk of lock / ABS saturation
+        if brk > 0.93:
+            self._heavy_brake_frames = getattr(self, "_heavy_brake_frames", 0) + 1
+            if self._heavy_brake_frames == 15 and not self._trigger_cooldown:
+                self._fire_trigger("ease brakes")
+        else:
+            self._heavy_brake_frames = 0
 
     def set_context_menu(self, menu):
         """Called by TrayManager so right-clicking the pill opens the same menu."""
@@ -211,6 +227,22 @@ class OverlayWindow(QWidget):
     def mouseMoveEvent(self, e):
         if not self._locked and e.buttons() == Qt.MouseButton.LeftButton and hasattr(self, "_drag"):
             self.move(e.globalPosition().toPoint() - self._drag)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton and not self._locked and hasattr(self, "_drag"):
+            pos = self.pos()
+            cx = pos.x() + self.width() // 2
+            cy = pos.y()
+            import threading
+            threading.Thread(target=self._save_position, args=(cx, cy), daemon=True).start()
+
+    def _save_position(self, x: int, y: int):
+        try:
+            import httpx
+            httpx.put(f"http://localhost:8000/api/settings/overlay_position_x", json={"value": str(x)}, timeout=2)
+            httpx.put(f"http://localhost:8000/api/settings/overlay_position_y", json={"value": str(y)}, timeout=2)
+        except Exception:
+            pass
 
     # ── ACT cue methods ──────────────────────────────────────────────────────
 

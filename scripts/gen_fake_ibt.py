@@ -245,6 +245,9 @@ def main():
     print(f"  Tyre laps: {len(result.get('tyre_laps', []))}")
     print(f"  Raw JSON:  {len(result.get('raw_json', ''))} chars")
     print(f"  Air/Track: {result['air_temp']}°C / {result['track_temp']}°C")
+    print(f"  S1 best:   {result.get('sector_1_best')}s")
+    print(f"  S2 best:   {result.get('sector_2_best')}s")
+    print(f"  S3 best:   {result.get('sector_3_best')}s")
 
     if args.upload:
         import httpx

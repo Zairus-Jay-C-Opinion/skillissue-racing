@@ -129,6 +129,56 @@ def parse_ibt(filepath: str) -> Optional[dict]:
             pass
 
 
+def _sector_bests(lap_nums, dist_pct_arr, lap_current_arr, lap_total_time: dict):
+    """
+    Detect S1/S2/S3 times per lap using 1/3 and 2/3 lap-distance thresholds.
+    Returns (s1_best, s2_best, s3_best) — all None if data is insufficient.
+    """
+    from collections import defaultdict
+
+    S1_THRESH = 1 / 3
+    S2_THRESH = 2 / 3
+
+    by_lap = defaultdict(list)
+    for i, ln in enumerate(lap_nums):
+        if ln is not None:
+            by_lap[int(ln)].append(i)
+
+    s1_times, s2_times, s3_times = [], [], []
+
+    for lap_num, indices in sorted(by_lap.items()):
+        total = lap_total_time.get(lap_num)
+        if not total:
+            continue
+
+        # Skip incomplete laps — if first frame is already well past start line
+        first_dp = dist_pct_arr[indices[0]] if indices and indices[0] < len(dist_pct_arr) else None
+        if first_dp is not None and first_dp > 0.10:
+            continue
+
+        s1_cross = s2_cross = None
+        for idx in indices:
+            dp = dist_pct_arr[idx] if idx < len(dist_pct_arr) else None
+            ct = lap_current_arr[idx] if idx < len(lap_current_arr) else None
+            if dp is None or ct is None:
+                continue
+            if s1_cross is None and dp >= S1_THRESH:
+                s1_cross = ct
+            if s2_cross is None and dp >= S2_THRESH:
+                s2_cross = ct
+                break  # have both, no need to continue
+
+        if s1_cross and s2_cross and s1_cross < s2_cross < total:
+            s1_times.append(s1_cross)
+            s2_times.append(s2_cross - s1_cross)
+            s3_times.append(total - s2_cross)
+
+    if not s1_times:
+        return None, None, None
+
+    return round(min(s1_times), 4), round(min(s2_times), 4), round(min(s3_times), 4)
+
+
 def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
     session_info = ir.session_info
 
@@ -164,6 +214,7 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
 
     # Collect valid completed lap times (LapLastLapTime updates when a lap completes)
     completed_laps = []
+    lap_total_time = {}   # lap_num → completed lap time (for sector detection)
     prev_lap = None
     for i, lap in enumerate(lap_nums):
         if lap is None:
@@ -172,12 +223,21 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
             t = lap_times[i] if i < len(lap_times) else None
             if t and 20 < t < 600:  # ignore outlap/in-lap extremes
                 completed_laps.append(t)
+                lap_total_time[prev_lap] = t
         prev_lap = lap
 
     if completed_laps:
         best_lap_time = round(min(completed_laps), 4)
         avg_lap_time = round(sum(completed_laps) / len(completed_laps), 4)
         lap_count = len(completed_laps)
+
+    # ── Sector detection ────────────────────────────────────────────────────
+    sector_1_best, sector_2_best, sector_3_best = _sector_bests(
+        lap_nums,
+        frames.get("LapDistPct", []),
+        frames.get("LapCurrentLapTime", []),
+        lap_total_time,
+    )
 
     # ── Tyre data per lap ──────────────────────────────────────────────────
     tyre_laps = []
@@ -287,6 +347,9 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
         "lap_count": lap_count,
         "best_lap_time": best_lap_time,
         "avg_lap_time": avg_lap_time,
+        "sector_1_best": sector_1_best,
+        "sector_2_best": sector_2_best,
+        "sector_3_best": sector_3_best,
         "air_temp": round(air_temp, 1) if air_temp else None,
         "track_temp": round(track_temp, 1) if track_temp else None,
         "weather": weather,

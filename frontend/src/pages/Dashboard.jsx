@@ -80,7 +80,7 @@ export default function Dashboard() {
   const sessionDate = new Date(lastSession.session_date)
 
   return (
-    <div className="p-6 space-y-4 max-w-5xl">
+    <div className="p-6 space-y-4">
       {/* Context header */}
       <header className="mb-2">
         <h1 className="text-2xl font-bold text-white leading-tight">

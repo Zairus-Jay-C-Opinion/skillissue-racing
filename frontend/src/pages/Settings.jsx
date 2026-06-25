@@ -78,7 +78,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-5 max-w-2xl">
+    <div className="p-6 space-y-5 max-w-3xl">
       <h1 className="text-xl font-bold text-white">Settings</h1>
 
       <Section icon="folder_open" title="Folder paths">

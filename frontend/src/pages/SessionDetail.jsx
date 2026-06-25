@@ -57,7 +57,7 @@ export default function SessionDetail() {
   const delta = session.delta_to_pb
 
   return (
-    <div className="p-6 space-y-5 max-w-4xl">
+    <div className="p-6 space-y-5">
       {/* Back nav */}
       <Link to="/sessions" className="inline-flex items-center gap-1 text-text-secondary hover:text-white text-sm transition-colors">
         <Icon name="arrow_back" className="text-[16px]" />

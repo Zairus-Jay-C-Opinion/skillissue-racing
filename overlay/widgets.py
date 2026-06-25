@@ -112,20 +112,30 @@ class PillHUD(QWidget):
         p.drawPath(path)
 
     def update_lap(self, current):
-        self._lap_val.setText(_fmt_time(current))
+        text = _fmt_time(current)
+        if text != getattr(self, "_cached_lap", None):
+            self._cached_lap = text
+            self._lap_val.setText(text)
 
     def update_delta(self, delta):
         if delta is None:
-            self._delta_val.setText("---")
-            self._delta_val.setStyleSheet("color: #ffffff; background: transparent;")
-            return
-        sign = "+" if delta >= 0 else ""
-        c = C_RED if delta >= 0 else C_TEAL
-        self._delta_val.setText(f"{sign}{delta:.3f}s")
-        self._delta_val.setStyleSheet(f"color: {c.name()}; background: transparent;")
+            text, color = "---", "#ffffff"
+        else:
+            sign = "+" if delta >= 0 else ""
+            c = C_RED if delta >= 0 else C_TEAL
+            text, color = f"{sign}{delta:.3f}s", c.name()
+        if text != getattr(self, "_cached_delta", None):
+            self._cached_delta = text
+            self._delta_val.setText(text)
+        if color != getattr(self, "_cached_delta_color", None):
+            self._cached_delta_color = color
+            self._delta_val.setStyleSheet(f"color: {color}; background: transparent;")
 
     def update_act(self, text: str | None):
-        self._act_val.setText(text or "---")
+        text = text or "---"
+        if text != getattr(self, "_cached_act", None):
+            self._cached_act = text
+            self._act_val.setText(text)
 
 
 # ── SectorStrip ─────────────────────────────────────────────────────────────────

@@ -105,7 +105,7 @@ class OverlayWindow(QWidget):
 
         timer = QTimer(self)
         timer.timeout.connect(self._tick)
-        timer.start(16)   # ~60 Hz
+        timer.start(33)   # ~30 Hz — sufficient for a lap timer display
 
     def _position(self):
         """Read saved position from backend settings, or default to top-center."""
@@ -260,31 +260,43 @@ class TrayManager:
         QTimer.singleShot(500, self._tray.show)
 
     def _refresh_menu_status(self):
-        """Update live status lines just before the menu shows."""
-        try:
-            import httpx
-            resp = httpx.get("http://localhost:8000/api/status", timeout=1)
-            data = resp.json() if resp.status_code == 200 else {}
-            iracing = data.get("iracing_running", False)
-            dot = "◉" if iracing else "○"
-            label = "Connected" if iracing else "Not detected"
-            self._iracing_status_action.setText(f"{dot}  iRacing: {label}")
-        except Exception:
-            self._iracing_status_action.setText("○  iRacing: Offline")
+        """Spawn a background thread to fetch status — never blocks the main thread."""
+        import threading
+        threading.Thread(target=self._fetch_status_bg, daemon=True).start()
 
+    def _fetch_status_bg(self):
+        """Runs on a worker thread; posts GUI updates back to the main thread."""
         try:
             import httpx
-            resp = httpx.get("http://localhost:8000/api/sessions?limit=1", timeout=1)
+            resp = httpx.get("http://localhost:8000/api/status", timeout=1.5)
+            iracing = resp.json().get("iracing_running", False) if resp.status_code == 200 else False
+        except Exception:
+            iracing = False
+
+        dot = "◉" if iracing else "○"
+        label = "Connected" if iracing else "Not detected"
+        iracing_text = f"{dot}  iRacing: {label}"
+
+        last_session_text = None
+        try:
+            import httpx
+            resp = httpx.get("http://localhost:8000/api/sessions?limit=1", timeout=1.5)
             if resp.status_code == 200:
                 items = resp.json().get("items", [])
                 if items:
                     s = items[0]
-                    self._last_session_action.setText(
-                        f"Last: {s.get('track_name','?')}  ·  {s.get('car_name','?')}"
-                    )
-                    self._last_session_action.setVisible(True)
+                    last_session_text = f"Last: {s.get('track_name','?')}  ·  {s.get('car_name','?')}"
         except Exception:
             pass
+
+        # Dispatch GUI updates back onto the main Qt thread
+        QTimer.singleShot(0, lambda: self._apply_status(iracing_text, last_session_text))
+
+    def _apply_status(self, iracing_text, last_session_text):
+        self._iracing_status_action.setText(iracing_text)
+        if last_session_text:
+            self._last_session_action.setText(last_session_text)
+            self._last_session_action.setVisible(True)
 
     def _open_dashboard(self):
         import webbrowser

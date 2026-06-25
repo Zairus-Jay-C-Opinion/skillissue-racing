@@ -60,6 +60,18 @@ def _start_backend():
     )
 
 
+def _wait_for_backend(host="127.0.0.1", port=8000, timeout=30) -> bool:
+    import socket
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(0.5)
+    return False
+
+
 def _get_settings_from_db() -> dict:
     try:
         from backend.database import SessionLocal
@@ -78,10 +90,9 @@ def main():
 
     # ── Backend ──
     threading.Thread(target=_start_backend, daemon=True).start()
-    time.sleep(2)  # give uvicorn time to bind
-
-    import webbrowser
-    webbrowser.open("http://localhost:8000")
+    if _wait_for_backend():
+        import webbrowser
+        webbrowser.open("http://localhost:8000")
 
     settings = _get_settings_from_db()
     telemetry_folder    = settings.get("telemetry_folder",    os.path.expanduser("~/Documents/iRacing/telemetry"))

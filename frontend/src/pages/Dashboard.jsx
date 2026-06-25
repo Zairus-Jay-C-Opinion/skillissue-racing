@@ -45,17 +45,11 @@ export default function Dashboard() {
       Promise.all([
         api.getCoaching(s.id).catch(() => null),
         api.getTyres(s.id).catch(() => null),
-        api.getSessions({ limit: 100 }),
-      ]).then(([c, t, allSessions]) => {
+        api.getSessions({ car: s.car_name, track: s.track_name, limit: 100 }),
+      ]).then(([c, t, comboSessions]) => {
         setCoaching(c)
         setTyres(t)
-        const sessionsThisWeek = allSessions.items.filter(sess => {
-          const d = new Date(sess.session_date)
-          const now = new Date()
-          return d >= new Date(now - 7 * 86400000)
-        })
-        const totalLaps = allSessions.items.reduce((acc, s) => acc + (s.lap_count || 0), 0)
-        setStats({ sessionsThisWeek: sessionsThisWeek.length, totalLaps, totalSessions: allSessions.total })
+        setStats({ comboCount: comboSessions.total })
         setLoading(false)
       })
     }).catch(() => setLoading(false))
@@ -119,10 +113,10 @@ export default function Dashboard() {
           icon="repeat"
         />
         <MetricCard
-          label="Sessions this week"
-          value={stats?.sessionsThisWeek ?? '—'}
-          icon="date_range"
-          sub={stats ? `/ ${stats.totalSessions} total` : ''}
+          label="Sessions on combo"
+          value={stats?.comboCount ?? '—'}
+          icon="route"
+          sub="this car + track"
         />
       </div>
 

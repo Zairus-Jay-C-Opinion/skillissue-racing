@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 17px;
+  }
   body {
     background-color: #0a0a0f;
     color: #f0f0f0;
@@ -54,10 +57,10 @@
   .border-warning    { border-color: #f59e0b; }
 
   /* Text palette */
-  .text-text-primary   { color: #f0f0f0; }
-  .text-text-secondary { color: #adadbf; }
-  .text-muted          { color: #c4c4d4; }
-  .text-text-dim       { color: #7a7a90; }
+  .text-text-primary   { color: #f5f5f5; }
+  .text-text-secondary { color: #d0d0de; }
+  .text-muted          { color: #e0e0ea; }
+  .text-text-dim       { color: #b0b0c4; }
 
   /* Surfaces */
   .bg-surface     { background-color: #0a0a0f; }

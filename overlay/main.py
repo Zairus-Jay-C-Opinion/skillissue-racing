@@ -303,7 +303,7 @@ def start_overlay():
     def _quit():
         app.quit()
 
-    TrayManager(overlay, status, _quit)
+    _tray = TrayManager(overlay, status, _quit)  # must be kept alive
     overlay.show()
     app.exec()
 

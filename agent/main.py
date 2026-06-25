@@ -30,6 +30,13 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+if getattr(sys, "frozen", False):
+    _log_dir = Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming"))) / "SkillIssueRacing"
+    _log_dir.mkdir(parents=True, exist_ok=True)
+    _fh = logging.FileHandler(str(_log_dir / "skillissue.log"))
+    _fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logging.getLogger().addHandler(_fh)
+
 # Filled in once the PyQt6 UI is initialised.
 _tray_manager = None
 
@@ -50,14 +57,18 @@ def notify(message: str):
 
 
 def _start_backend():
-    from backend.main import app as _app
-    import uvicorn
-    uvicorn.run(
-        _app,
-        host="127.0.0.1",
-        port=int(os.getenv("BACKEND_PORT", "8000")),
-        log_level="warning",
-    )
+    try:
+        from backend.main import app as _app
+        import uvicorn
+        uvicorn.run(
+            _app,
+            host="127.0.0.1",
+            port=int(os.getenv("BACKEND_PORT", "8000")),
+            log_level="warning",
+            log_config=None,  # sys.stdout is None with console=False
+        )
+    except Exception as e:
+        log.error(f"Backend failed to start: {e}", exc_info=True)
 
 
 def _wait_for_backend(host="127.0.0.1", port=8000, timeout=30) -> bool:

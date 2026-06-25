@@ -15,8 +15,8 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
     QSystemTrayIcon, QMenu,
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QAction, QCursor
+from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QAction, QCursor, QDesktopServices
 
 from overlay.widgets import PillHUD, SectorStrip, StatusWindow, push_event
 
@@ -432,8 +432,7 @@ class TrayManager:
             self._last_session_action.setVisible(True)
 
     def _open_dashboard(self):
-        import webbrowser
-        webbrowser.open("http://localhost:8000")
+        QDesktopServices.openUrl(QUrl("http://localhost:8000"))
 
     def _toggle_overlay(self):
         if self._overlay.isVisible():

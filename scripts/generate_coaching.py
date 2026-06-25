@@ -1,15 +1,17 @@
 """
-Generates coaching for all sessions that don't have it yet.
+Generates coaching for sessions that don't have it yet.
 
 Run while the backend is running:
-    python -m scripts.generate_coaching
+    python -m scripts.generate_coaching          # all missing sessions
+    python -m scripts.generate_coaching --limit 1  # just one session
 
-Calls Gemini one session at a time, synchronously, with a 5s gap between
+Calls Gemini one session at a time, synchronously, with a 10s gap between
 calls to stay under the free tier limit of 15 req/min.
 """
 
 import sys
 import time
+import argparse
 import httpx
 from pathlib import Path
 
@@ -18,6 +20,9 @@ DELAY = 10  # seconds between successful Gemini calls
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--limit", type=int, default=None, help="Max sessions to generate coaching for")
+    args = parser.parse_args()
     # Check backend is reachable
     try:
         httpx.get(f"{BASE}/api/status", timeout=3).raise_for_status()
@@ -43,6 +48,8 @@ def main():
     failed = 0
 
     for s in sessions:
+        if args.limit is not None and done >= args.limit:
+            break
         sid = s["id"]
         label = f"{s['car_name']} @ {s['track_name']} ({s['session_date'][:10]})"
 
@@ -85,7 +92,7 @@ def main():
             "temp_imbalance": round(abs(fl - fr), 1),
         }
 
-        print(f"  → Generating: {label} ...", end=" ", flush=True)
+        print(f"  > Generating: {label} ...", end=" ", flush=True)
 
         # Call Gemini via a small inline helper (sync, with retry)
         result = _call_gemini_sync(session_data)

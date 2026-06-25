@@ -97,6 +97,8 @@ class OverlayWindow(QWidget):
         layout.addWidget(self.pill,  0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self.strip, 0, Qt.AlignmentFlag.AlignHCenter)
 
+        self._context_menu = None   # set by TrayManager after construction
+
         self.adjustSize()
         self._position()
         self.pill.set_unlocked_hint(True)   # orange border = drag mode active
@@ -153,6 +155,10 @@ class OverlayWindow(QWidget):
 
         self.strip.set_progress(dist_pct)
 
+    def set_context_menu(self, menu):
+        """Called by TrayManager so right-clicking the pill opens the same menu."""
+        self._context_menu = menu
+
     def set_locked(self, locked: bool):
         """
         Locked = click-through (for use during racing).
@@ -164,8 +170,12 @@ class OverlayWindow(QWidget):
         self.show()   # window flags only take effect after re-show
 
     def mousePressEvent(self, e):
-        if not self._locked and e.button() == Qt.MouseButton.LeftButton:
+        if self._locked:
+            return
+        if e.button() == Qt.MouseButton.LeftButton:
             self._drag = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
+        elif e.button() == Qt.MouseButton.RightButton and self._context_menu:
+            self._context_menu.exec(e.globalPosition().toPoint())
 
     def mouseMoveEvent(self, e):
         if not self._locked and e.buttons() == Qt.MouseButton.LeftButton and hasattr(self, "_drag"):
@@ -236,6 +246,9 @@ class TrayManager:
         self._tray.setContextMenu(menu)
         self._tray.activated.connect(self._on_activated)
         self._tray.show()
+
+        # Right-clicking the pill also opens this menu
+        overlay.set_context_menu(menu)
 
     def _open_dashboard(self):
         import webbrowser

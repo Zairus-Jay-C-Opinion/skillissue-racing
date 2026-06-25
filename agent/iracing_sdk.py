@@ -32,6 +32,16 @@ def _poll_loop():
                 if ir.startup():
                     connected = True
                     log.info("iRacing SDK connected")
+                    # Car and track come from session_info YAML, not telemetry vars
+                    weekend = (ir.session_info or {}).get("WeekendInfo", {})
+                    _car_name = weekend.get("CarName", "Unknown Car")
+                    _track_name = weekend.get(
+                        "TrackDisplayName",
+                        weekend.get("TrackName", "Unknown Track"),
+                    )
+                    with _lock:
+                        _state["car_name"]   = _car_name
+                        _state["track_name"] = _track_name
                 else:
                     time.sleep(2)
                     continue

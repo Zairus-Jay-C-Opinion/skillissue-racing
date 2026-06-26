@@ -33,7 +33,10 @@ def _poll_loop():
                     connected = True
                     log.info("iRacing SDK connected")
                     # Car and track come from session_info YAML, not telemetry vars
-                    weekend = (ir.session_info or {}).get("WeekendInfo", {})
+                    try:
+                        weekend = ir.parse_to('WeekendInfo') or {}
+                    except Exception:
+                        weekend = {}
                     _car_name = weekend.get("CarName", "Unknown Car")
                     _track_name = weekend.get(
                         "TrackDisplayName",

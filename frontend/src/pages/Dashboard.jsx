@@ -38,21 +38,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.getSessions({ limit: 1 }).then(res => {
-      const s = res.items[0]
-      if (!s) { setLoading(false); return }
-      setLastSession(s)
-      Promise.all([
-        api.getCoaching(s.id).catch(() => null),
-        api.getTyres(s.id).catch(() => null),
-        api.getSessions({ car: s.car_name, track: s.track_name, limit: 100 }),
-      ]).then(([c, t, comboSessions]) => {
-        setCoaching(c)
-        setTyres(t)
-        setStats({ comboCount: comboSessions.total })
-        setLoading(false)
-      })
-    }).catch(() => setLoading(false))
+    let alive = true
+
+    const fetchData = (isFirst = false) => {
+      if (isFirst) setLoading(true)
+      api.getSessions({ limit: 1 }).then(res => {
+        if (!alive) return
+        const s = res.items[0]
+        if (!s) { setLoading(false); return }
+        setLastSession(s)
+        Promise.all([
+          api.getCoaching(s.id).catch(() => null),
+          api.getTyres(s.id).catch(() => null),
+          api.getSessions({ car: s.car_name, track: s.track_name, limit: 100 }),
+        ]).then(([c, t, comboSessions]) => {
+          if (!alive) return
+          setCoaching(c)
+          setTyres(t)
+          setStats({ comboCount: comboSessions.total })
+          setLoading(false)
+        })
+      }).catch(() => { if (alive) setLoading(false) })
+    }
+
+    fetchData(true)
+    const id = setInterval(() => fetchData(false), 15_000)
+    return () => { alive = false; clearInterval(id) }
   }, [])
 
   if (loading) return (

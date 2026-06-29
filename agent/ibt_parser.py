@@ -231,6 +231,28 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
         avg_lap_time = round(sum(completed_laps) / len(completed_laps), 4)
         lap_count = len(completed_laps)
 
+    # ── PB lap telemetry trace (for overlay VS PB delta) ──────────────────
+    pb_telemetry = None
+    if best_lap_time is not None and lap_total_time:
+        best_lap_num = min(lap_total_time, key=lap_total_time.get)
+        lap_current_arr = frames.get("LapCurrentLapTime", [])
+        dist_arr = frames.get("LapDistPct", [])
+        pb_frames = []
+        for i, ln in enumerate(lap_nums):
+            if ln != best_lap_num:
+                continue
+            if i >= len(lap_current_arr) or i >= len(dist_arr):
+                continue
+            t_val = lap_current_arr[i]
+            d_val = dist_arr[i]
+            if t_val is not None and d_val is not None:
+                pb_frames.append({
+                    "dist_pct": round(float(d_val), 4),
+                    "t": round(float(t_val), 4),
+                })
+        if pb_frames:
+            pb_telemetry = json.dumps(pb_frames[::5])  # ~12Hz sample from 60Hz
+
     # ── Sector detection ────────────────────────────────────────────────────
     sector_1_best, sector_2_best, sector_3_best = _sector_bests(
         lap_nums,
@@ -359,4 +381,5 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
         "oversteer_count": oversteer_count,
         "tyre_laps": tyre_laps,
         "raw_json": json.dumps(compact),
+        "pb_telemetry": pb_telemetry,
     }

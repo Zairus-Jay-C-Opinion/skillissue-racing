@@ -96,6 +96,7 @@ class SessionCreate(BaseModel):
     weather: Optional[str] = None
     raw_json: Optional[str] = None
     tyre_laps: Optional[list] = None
+    pb_telemetry: Optional[str] = None
 
 
 class SettingUpdate(BaseModel):
@@ -151,6 +152,7 @@ async def create_session(body: SessionCreate, background_tasks: BackgroundTasks,
             pb.sector_2_best = body.sector_2_best
             pb.sector_3_best = body.sector_3_best
             pb.session_id = session_id
+            pb.lap_telemetry = body.pb_telemetry
             pb.updated_at = datetime.utcnow()
 
     # Store per-lap tyre data

@@ -187,9 +187,13 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
     driver_info = session_info.get("DriverInfo", {})
     car_name = weekend.get("CarName", "Unknown Car")
     track_name = weekend.get("TrackDisplayName", weekend.get("TrackName", "Unknown Track"))
-    session_date_str = weekend.get("WeekendOptions", {}).get("Date", "")
+    # WeekendOptions.Date is the in-sim date configured for the session setup —
+    # for solo practice/test sessions this is often reused unchanged across many
+    # real-world sessions, so it can't be trusted as "when this was driven."
+    # The file's mtime (set once iRacing releases its write lock) is the actual
+    # real-world timestamp.
     try:
-        session_date = datetime.strptime(session_date_str, "%Y-%m-%d").isoformat()
+        session_date = datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat()
     except Exception:
         session_date = datetime.utcnow().isoformat()
 

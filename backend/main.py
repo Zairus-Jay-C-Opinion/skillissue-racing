@@ -264,7 +264,7 @@ def list_sessions(
     if track:
         q = q.filter(SessionModel.track_name.ilike(f"%{track}%"))
     total = q.count()
-    sessions = q.order_by(desc(SessionModel.session_date)).offset((page - 1) * limit).limit(limit).all()
+    sessions = q.order_by(desc(SessionModel.created_at)).offset((page - 1) * limit).limit(limit).all()
 
     items = []
     for s in sessions:

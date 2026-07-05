@@ -11,8 +11,10 @@ We use pyirsdk's ibt reader which abstracts all of this.
 """
 
 import os
+import re
 import json
 import logging
+import yaml
 from datetime import datetime
 from typing import Optional
 
@@ -179,8 +181,40 @@ def _sector_bests(lap_nums, dist_pct_arr, lap_current_arr, lap_total_time: dict)
     return round(min(s1_times), 4), round(min(s2_times), 4), round(min(s3_times), 4)
 
 
+def _read_ibt_session_info(ir: "irsdk.IBT") -> dict:
+    """
+    pyirsdk's IBT class (used to parse recorded .ibt files) has no public
+    session_info API in this version — only the live IRSDK class exposes one.
+    The YAML block lives at the same shared-memory offset/length for both
+    classes, so read and parse it the same way IRSDK.parse_to() does
+    internally, quote-escaping quirks included (driver/team names can contain
+    unescaped quotes/commas that break a naive yaml.safe_load).
+    """
+    header = ir._header
+    raw = ir._shared_mem[header.session_info_offset: header.session_info_offset + header.session_info_len]
+    raw = raw.rstrip(b"\x00")
+
+    utf8_sign = b"---\nWeekendInfo:\n Encoding: UTF8"
+    is_utf8 = raw[:len(utf8_sign)] == utf8_sign
+    text = raw.decode("utf-8" if is_utf8 else "cp1252")
+
+    def _escape(m):
+        return m.group("key") + '"%s"' % re.sub(r'(["\\])', r'\\\1', m.group("value"))
+
+    if is_utf8:
+        text = re.sub(r'(?P<key>^\s*\w+: )"(?P<value>.*)"$', _escape, text, flags=re.M)
+    else:
+        # cp1252 files don't get the generic quoted-string pass above, so
+        # driver/team name fields need their own escaping (unescaped quotes
+        # in these specific fields are a known iRacing YAML quirk)
+        text = re.sub(r'(?P<key>(?:DriverSetupName|UserName|TeamName|AbbrevName|Initials): )(?P<value>.+)', _escape, text)
+    text = re.sub(r'(?P<key>\w+: )(?P<value>,.*)', _escape, text)
+
+    return yaml.load(text, Loader=irsdk.CustomYamlSafeLoader) or {}
+
+
 def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
-    session_info = ir.session_info
+    session_info = _read_ibt_session_info(ir)
 
     # Pull session/weekend metadata from the YAML block
     weekend = session_info.get("WeekendInfo", {})

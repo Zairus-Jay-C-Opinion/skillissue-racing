@@ -32,9 +32,13 @@ def _poll_loop():
                 if ir.startup():
                     connected = True
                     log.info("iRacing SDK connected")
-                    # Car and track come from session_info YAML, not telemetry vars
+                    # Car and track come from session_info YAML, not telemetry vars.
+                    # ir['WeekendInfo'] routes through IRSDK's own YAML parser
+                    # (__getitem__ falls back to _get_session_info for non-telemetry
+                    # keys) — parse_to() writes to a file and returns None, it isn't
+                    # a getter.
                     try:
-                        weekend = ir.parse_to('WeekendInfo') or {}
+                        weekend = ir['WeekendInfo'] or {}
                     except Exception:
                         weekend = {}
                     _car_name = weekend.get("CarName", "Unknown Car")

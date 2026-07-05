@@ -231,12 +231,16 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
     except Exception:
         session_date = datetime.utcnow().isoformat()
 
-    # Collect per-frame data
+    # Collect per-frame data.
+    # var_headers_dict is only exposed as the protected _var_headers_dict on
+    # this pyirsdk version, and it maps name -> VarHeader struct (use
+    # .count, not a dict .get()).
     frames = {ch: [] for ch in ALL_CHANNELS}
-    total_frames = ir.var_headers_dict.get("SessionTime", {}).get("count", 0)
+    session_time_header = ir._var_headers_dict.get("SessionTime")
+    total_frames = session_time_header.count if session_time_header else 0
 
     # irsdk IBT: iterate using ir[channel] which returns the full array
-    available = set(ir.var_headers_dict.keys())
+    available = set(ir._var_headers_dict.keys())
     for ch in ALL_CHANNELS:
         if ch in available:
             frames[ch] = list(ir[ch]) if ir[ch] is not None else []

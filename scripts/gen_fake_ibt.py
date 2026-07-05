@@ -21,6 +21,7 @@ import argparse
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 # Ensure repo root is on the path
@@ -32,8 +33,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 class FakeIBT:
     """
     Simulates what irsdk.IBT returns after ir.open(filepath).
-    ibt_parser.py calls ir[channel_name] which returns a list of floats.
-    It also reads ir.session_info for metadata.
+    ibt_parser.py calls ir[channel_name] which returns a list of floats, and
+    reads session YAML + var headers straight off _shared_mem/_header/
+    _var_headers_dict — mirrors the real (undocumented) IBT class shape,
+    since this pyirsdk version has no public session_info/var_headers_dict.
     """
 
     def __init__(self, car: str, track: str, laps: int = 12, best_lap: float = 139.2):
@@ -43,20 +46,23 @@ class FakeIBT:
         self.best_lap = best_lap
         self._frames = self._generate_frames()
 
-        # YAML-like session_info dict — same structure pyirsdk returns
-        self.session_info = {
-            "WeekendInfo": {
-                "CarName": car,
-                "TrackDisplayName": track,
-                "WeekendOptions": {
-                    "Date": datetime.now().strftime("%Y-%m-%d"),
-                },
-            },
-            "DriverInfo": {},
-        }
+        # Raw YAML block, laid out the way ibt_parser._read_ibt_session_info reads it
+        yaml_text = (
+            "---\n"
+            "WeekendInfo:\n"
+            f" CarName: {car}\n"
+            f" TrackDisplayName: {track}\n"
+            " WeekendOptions:\n"
+            f"  Date: {datetime.now().strftime('%Y-%m-%d')}\n"
+            "DriverInfo:\n"
+            " Drivers: []\n"
+        )
+        raw = yaml_text.encode("utf-8")
+        self._shared_mem = raw + b"\x00" * 16
+        self._header = SimpleNamespace(session_info_offset=0, session_info_len=len(raw))
 
-        # var_headers_dict tells ibt_parser which channels are available
-        self.var_headers_dict = {ch: {"count": len(self._frames[ch])} for ch in self._frames}
+        # name -> VarHeader-like object; real pyirsdk exposes .count as an attribute, not a dict key
+        self._var_headers_dict = {ch: SimpleNamespace(count=len(self._frames[ch])) for ch in self._frames}
 
     def _generate_frames(self) -> dict:
         """
@@ -169,25 +175,22 @@ def run_mock_parse(car: str, track: str, laps: int = 12, best_lap: float = 139.2
     """
     fake = FakeIBT(car=car, track=track, laps=laps, best_lap=best_lap)
 
-    # ibt_parser does: ir = irsdk.IBT(); ir.open(filepath)
-    mock_irsdk = MagicMock()
-    mock_irsdk.IBT.return_value = fake
+    # Patch only the IBT constructor on the real irsdk module — ibt_parser.py
+    # needs the real module's yaml/CustomYamlSafeLoader to actually parse the
+    # session YAML, so we can't swap out all of sys.modules["irsdk"].
+    import irsdk
+    from agent.ibt_parser import parse_ibt
 
-    with patch.dict("sys.modules", {"irsdk": mock_irsdk}):
-        # Force re-import of ibt_parser so it picks up the patched irsdk
-        if "agent.ibt_parser" in sys.modules:
-            del sys.modules["agent.ibt_parser"]
-        from agent.ibt_parser import parse_ibt
+    # Write a dummy file so the size check passes
+    with tempfile.NamedTemporaryFile(suffix=".ibt", delete=False) as f:
+        f.write(b"\x00" * 20 * 1024)  # 20 KB dummy
+        tmp_path = f.name
 
-        # Write a dummy file so the size check passes
-        with tempfile.NamedTemporaryFile(suffix=".ibt", delete=False) as f:
-            f.write(b"\x00" * 20 * 1024)  # 20 KB dummy
-            tmp_path = f.name
-
-        try:
+    try:
+        with patch.object(irsdk, "IBT", return_value=fake):
             result = parse_ibt(tmp_path)
-        finally:
-            os.unlink(tmp_path)
+    finally:
+        os.unlink(tmp_path)
 
     return result
 

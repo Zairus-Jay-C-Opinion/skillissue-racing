@@ -159,6 +159,9 @@ class FakeIBT:
     def __getitem__(self, channel: str):
         return self._frames.get(channel, [])
 
+    def get_all(self, channel: str):
+        return self._frames.get(channel, [])
+
     def open(self, path: str):
         pass  # no-op for mock
 

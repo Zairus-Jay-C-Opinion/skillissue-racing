@@ -239,11 +239,13 @@ def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
     session_time_header = ir._var_headers_dict.get("SessionTime")
     total_frames = session_time_header.count if session_time_header else 0
 
-    # irsdk IBT: iterate using ir[channel] which returns the full array
+    # ir[channel] (__getitem__) only returns the *last* frame's value on this
+    # pyirsdk version — get_all(channel) is the one that returns the full
+    # per-frame array across the whole recorded session.
     available = set(ir._var_headers_dict.keys())
     for ch in ALL_CHANNELS:
         if ch in available:
-            frames[ch] = list(ir[ch]) if ir[ch] is not None else []
+            frames[ch] = ir.get_all(ch) or []
 
     total_frames = max(len(v) for v in frames.values() if v)
 

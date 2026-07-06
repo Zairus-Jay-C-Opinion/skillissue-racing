@@ -41,7 +41,18 @@ def _poll_loop():
                         weekend = ir['WeekendInfo'] or {}
                     except Exception:
                         weekend = {}
-                    _car_name = weekend.get("CarName", "Unknown Car")
+                    try:
+                        driver_info = ir['DriverInfo'] or {}
+                    except Exception:
+                        driver_info = {}
+                    # WeekendInfo has no CarName field — car identity lives under
+                    # DriverInfo.Drivers[], keyed by DriverCarIdx (the local player).
+                    _car_name = "Unknown Car"
+                    _driver_car_idx = driver_info.get("DriverCarIdx")
+                    for _d in driver_info.get("Drivers", []):
+                        if _d.get("CarIdx") == _driver_car_idx:
+                            _car_name = _d.get("CarScreenName") or _d.get("CarPath") or "Unknown Car"
+                            break
                     _track_name = weekend.get(
                         "TrackDisplayName",
                         weekend.get("TrackName", "Unknown Track"),

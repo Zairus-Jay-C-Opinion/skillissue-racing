@@ -213,13 +213,25 @@ def _read_ibt_session_info(ir: "irsdk.IBT") -> dict:
     return yaml.load(text, Loader=irsdk.CustomYamlSafeLoader) or {}
 
 
+def _resolve_car_name(driver_info: dict) -> str:
+    """
+    WeekendInfo has no CarName field — iRacing puts car identity under
+    DriverInfo.Drivers[], keyed by DriverCarIdx (the local player's entry).
+    """
+    driver_car_idx = driver_info.get("DriverCarIdx")
+    for d in driver_info.get("Drivers", []):
+        if d.get("CarIdx") == driver_car_idx:
+            return d.get("CarScreenName") or d.get("CarPath") or "Unknown Car"
+    return "Unknown Car"
+
+
 def _extract(ir: "irsdk.IBT", filepath: str) -> dict:
     session_info = _read_ibt_session_info(ir)
 
     # Pull session/weekend metadata from the YAML block
     weekend = session_info.get("WeekendInfo", {})
     driver_info = session_info.get("DriverInfo", {})
-    car_name = weekend.get("CarName", "Unknown Car")
+    car_name = _resolve_car_name(driver_info)
     track_name = weekend.get("TrackDisplayName", weekend.get("TrackName", "Unknown Track"))
     # WeekendOptions.Date is the in-sim date configured for the session setup —
     # for solo practice/test sessions this is often reused unchanged across many

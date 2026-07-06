@@ -46,16 +46,21 @@ class FakeIBT:
         self.best_lap = best_lap
         self._frames = self._generate_frames()
 
-        # Raw YAML block, laid out the way ibt_parser._read_ibt_session_info reads it
+        # Raw YAML block, laid out the way ibt_parser._read_ibt_session_info reads it.
+        # WeekendInfo has no CarName in real telemetry — car identity lives under
+        # DriverInfo.Drivers[], keyed by DriverCarIdx, so the mock mirrors that shape.
         yaml_text = (
             "---\n"
             "WeekendInfo:\n"
-            f" CarName: {car}\n"
             f" TrackDisplayName: {track}\n"
             " WeekendOptions:\n"
             f"  Date: {datetime.now().strftime('%Y-%m-%d')}\n"
             "DriverInfo:\n"
-            " Drivers: []\n"
+            " DriverCarIdx: 0\n"
+            " Drivers:\n"
+            " - CarIdx: 0\n"
+            f"   CarScreenName: {car}\n"
+            f"   CarPath: {car.lower().replace(' ', '')}\n"
         )
         raw = yaml_text.encode("utf-8")
         self._shared_mem = raw + b"\x00" * 16
